@@ -1,0 +1,2226 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>แสงเชิงคลื่น | สื่อจำลอง ม.5</title>
+<style>
+  :root {
+    --bg: #070d1a;
+    --card: #121a2e;
+    --ink: #e8eefc;
+    --muted: #93a4c4;
+    --line: rgba(150, 178, 224, 0.18);
+    --teal: #2fe0c0;
+    --gold: #ffd56a;
+    --blue: #8eb7ff;
+    --warn: #ffbf5c;
+    --dock: 88px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Leelawadee UI", Tahoma, "Segoe UI", sans-serif;
+    background:
+      radial-gradient(880px 380px at 0% -10%, rgba(47, 224, 192, 0.14), transparent 58%),
+      radial-gradient(720px 360px at 100% 0%, rgba(120, 156, 255, 0.16), transparent 52%),
+      var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+    min-height: 100vh;
+    color-scheme: dark;
+  }
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    padding: 14px 18px 12px;
+    background: rgba(7, 13, 26, 0.82);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--line);
+  }
+  .eyebrow { margin: 0; color: var(--teal); font-size: 12.5px; letter-spacing: 0.01em; }
+  h1 { margin: 1px 0 0; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+  .subtitle { margin: 2px 0 10px; color: var(--muted); font-size: 13.5px; }
+  .rainbow { height: 3px; border-radius: 99px; background: linear-gradient(90deg, #7a4dff, #3d7bff, #2de2a0, #ffe14a, #ff7a3c, #ff3b4e); }
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr) minmax(320px, 400px);
+    gap: 14px;
+    padding: 14px;
+    align-items: start;
+  }
+  .panel, .analytics, .stage {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  @media (min-width: 1100px) {
+    .panel, .analytics, .stage {
+      max-height: calc(100vh - 118px);
+      overflow: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #314564 transparent;
+    }
+  }
+  @media (max-width: 1099px) and (min-width: 760px) {
+    .layout {
+      grid-template-columns: 1fr 1fr;
+      grid-template-areas: "stage stage" "panel analytics";
+    }
+    .stage { grid-area: stage; display: grid; grid-template-columns: 1fr 1fr; }
+    .panel { grid-area: panel; }
+    .analytics { grid-area: analytics; }
+    .now, #polCard { grid-column: 1 / -1; }
+  }
+  @media (max-width: 759px) {
+    .layout { grid-template-columns: 1fr; padding: 10px 10px calc(var(--dock) + env(safe-area-inset-bottom)); }
+    body[data-pane="stage"] .panel,
+    body[data-pane="stage"] .analytics,
+    body[data-pane="controls"] .stage,
+    body[data-pane="controls"] .analytics,
+    body[data-pane="learn"] .stage,
+    body[data-pane="learn"] .panel { display: none; }
+    body[data-pane="stage"] {
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    body[data-pane="stage"] header { position: static; }
+    body[data-pane="stage"] .layout {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    body[data-pane="stage"] .stage {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1.15fr) minmax(0, 0.95fr);
+      gap: 8px;
+      overflow: auto;
+    }
+    body[data-pane="stage"] .stage .card {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    body[data-pane="stage"] #topView,
+    body[data-pane="stage"] #screenView,
+    body[data-pane="stage"] #polView {
+      flex: 1 1 auto;
+      width: 100%;
+      height: auto;
+      min-height: 112px;
+    }
+    body[data-pane="stage"] .caption {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .layout { padding-bottom: calc(var(--dock) + 12px + env(safe-area-inset-bottom)); }
+    header { padding-top: max(10px, env(safe-area-inset-top)); }
+    .eyebrow { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .subtitle { display: none; }
+    h1 { font-size: 22px; }
+    .card { padding: 12px; }
+    #graph { height: 210px; }
+    #polView { height: 200px; }
+    .stats { grid-template-columns: 1fr; }
+    .eq { flex-direction: column; align-items: flex-start; gap: 2px; }
+    .eq b { text-align: left; }
+    select, .modes button, .seg button, .transport button, #phaseBtn, #rulerBtn { font-size: 16px; }
+  }
+  .card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.012)), var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 14px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+  }
+  .now { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+  .now span {
+    background: rgba(16, 24, 43, 0.9);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 12.5px;
+    color: #d7e4f8;
+  }
+  .now span:first-child { color: #d9fff6; border-color: rgba(47, 224, 192, 0.55); background: rgba(18, 63, 58, 0.85); }
+  h2 { margin: 0 0 10px; font-size: 16px; font-weight: 700; }
+  .stage h2::before, .analytics .card:not(.mis) h2::before {
+    content: "";
+    display: inline-block;
+    width: 8px; height: 8px;
+    margin-right: 8px;
+    border-radius: 50%;
+    background: var(--teal);
+    box-shadow: 0 0 10px var(--teal);
+    vertical-align: 1px;
+  }
+  h3 { margin: 0 0 8px; font-size: 13px; color: var(--muted); font-weight: 650; letter-spacing: 0.02em; }
+  .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 14px;
+    background: #0c1424;
+    border: 1px solid var(--line);
+  }
+  button, select, input { font-family: inherit; }
+  button {
+    background: #0c1424;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px 12px;
+    min-height: 44px;
+    cursor: pointer;
+    font-size: 14.5px;
+  }
+  .modes button.on, .seg button.on, #phaseBtn.on, #rulerBtn.on, #playBtn.on {
+    background: linear-gradient(180deg, #1a5c54, #123f3a);
+    border-color: #2aa894;
+    color: #d9fff6;
+    box-shadow: inset 0 0 0 1px rgba(47, 224, 192, 0.35);
+  }
+  .seg button { border-color: transparent; background: transparent; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+  .field { margin-top: 12px; }
+  .field-head, .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  label { font-size: 14px; }
+  output { color: var(--teal); font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+  .swatch { width: 16px; height: 16px; border-radius: 50%; display: inline-block; border: 1px solid rgba(255,255,255,.4); margin-left: 6px; vertical-align: -3px; box-shadow: 0 0 10px rgba(255,255,255,.25); }
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 10px; border-radius: 99px; background: #24344f; margin: 10px 0 2px;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--teal); border: 3px solid #06221c; cursor: pointer;
+    box-shadow: 0 0 0 4px rgba(47, 224, 192, 0.16);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--teal); border: 3px solid #06221c; cursor: pointer;
+  }
+  #lam { background: linear-gradient(90deg, #6a00c8, #2f00ff, #0088ff, #00e08a, #ffe14a, #ff7a18, #ff2020); }
+  select {
+    width: 100%; margin-top: 8px; background: #0c1424; color: var(--ink);
+    border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-size: 15px;
+  }
+  .hint { margin: 8px 0 0; color: var(--muted); font-size: 12.5px; }
+  #observe {
+    margin: 10px 0 0;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: rgba(47, 224, 192, 0.08);
+    color: #d5f7ef;
+  }
+  #phaseBtn, #rulerBtn { width: 100%; text-align: left; }
+  .transport { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+  @media (max-width: 759px) {
+    h1 { font-size: 22px; }
+    .field { margin-top: 8px; }
+    .hint { margin-top: 4px; }
+    .transport { margin-top: 8px; }
+    .card { padding: 12px; }
+    .stats { grid-template-columns: 1fr; }
+    #graph { height: 220px; }
+    select, .modes button, .seg button, .transport button, #phaseBtn, #rulerBtn { font-size: 16px; }
+  }
+  canvas { width: 100%; display: block; border-radius: 12px; background: #070b14; touch-action: none; }
+  #topView { height: 320px; }
+  #screenView { height: 220px; }
+  #polView { height: 240px; }
+  #graph { height: 260px; }
+  .caption { margin: 8px 0 0; color: var(--muted); font-size: 12.5px; }
+  .measure { margin: 8px 0 0; padding: 8px 10px; border-radius: 12px; background: #10182b; border: 1px solid var(--line); font-size: 13.5px; }
+  .measure.match { border-color: #1d8f7e; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat { background: #10182b; border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+  .stat.wide { grid-column: 1 / -1; }
+  .stat .k { color: var(--muted); font-size: 12.5px; }
+  .stat .v { color: var(--teal); font-size: 18px; font-weight: 700; margin-top: 2px; overflow-wrap: anywhere; }
+  .stat .sub { color: #c5d4ee; font-size: 12.5px; margin-top: 3px; }
+  .warn { color: var(--warn); }
+  .meter { margin-top: 12px; }
+  .track { height: 10px; background: #0d1524; border-radius: 99px; overflow: hidden; margin-top: 6px; }
+  .fill { height: 100%; width: 0%; background: linear-gradient(90deg, #1a6b8a, #2fe0c0); }
+  .formula p { margin: 4px 0; }
+  .prose { margin: 6px 0 10px; color: #d5e2f7; font-size: 13.5px; }
+  .subhead { margin: 14px 0 6px; color: #9fd8ff; font-size: 13.5px; font-weight: 700; }
+  .eq {
+    display: flex; justify-content: space-between; gap: 10px; align-items: baseline;
+    margin-top: 6px; padding: 8px 10px; border-radius: 12px;
+    background: rgba(8, 14, 28, 0.55); font-size: 13.5px;
+  }
+  .eq span { color: #93a4c4; }
+  .eq b { color: #e7fff8; font-weight: 650; text-align: right; overflow-wrap: anywhere; }
+  .steps { margin: 6px 0 0; padding-left: 18px; color: #d5e2f7; font-size: 13.5px; }
+  .steps li { margin: 5px 0; }
+  .table-scroll { overflow-x: auto; margin-top: 8px; border: 1px solid var(--line); border-radius: 12px; -webkit-overflow-scrolling: touch; }
+  table.pos { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 280px; }
+  table.pos th { color: #9eb0ce; font-weight: 650; background: #10182b; }
+  table.pos th, table.pos td { padding: 7px 8px; border-bottom: 1px solid rgba(140, 170, 220, .14); text-align: right; white-space: nowrap; }
+  table.pos th:first-child, table.pos td:first-child { text-align: left; }
+  table.pos tr.here td { color: #2fe0c0; font-weight: 700; }
+  .mis { background: linear-gradient(180deg, rgba(255, 191, 92, 0.08), rgba(255,255,255,0.02)), #241c12; border-color: #6a5420; }
+  .mis h2 { color: #ffd27a; font-size: 15px; }
+  .mis ul { margin: 6px 0 0; padding-left: 18px; }
+  .mis li { margin: 6px 0; }
+  .live { background: #132033; border-radius: 12px; padding: 10px; margin-top: 10px; }
+  .off { opacity: 0.45; }
+  .dock {
+    display: none;
+    position: fixed;
+    z-index: 30;
+    left: 12px; right: 12px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+    padding: 5px;
+    border-radius: 18px;
+    background: rgba(12, 18, 34, 0.92);
+    border: 1px solid var(--line);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(16px);
+  }
+  .dock button {
+    min-height: 52px;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 4px;
+    font-size: 13px;
+    font-weight: 650;
+  }
+  .dock button svg { width: 18px; height: 18px; }
+  .dock button.on { background: #123f3a; color: var(--teal); box-shadow: none; }
+  @media (max-width: 759px) { .dock { display: grid; } }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body data-pane="stage">
+<header>
+  <p class="eyebrow">ฟิสิกส์เพิ่มเติม · มัธยมศึกษาปีที่ 5 · ตามแนวแบบเรียน สสวท.</p>
+  <h1>แสงเชิงคลื่น</h1>
+  <p class="subtitle">สื่อจำลองเชิงโต้ตอบ: สลิตคู่ · สลิตเดี่ยว · เกรตติ้ง · โพลาไรเซชัน</p>
+  <div class="rainbow"></div>
+</header>
+<main class="layout">
+  <section class="panel" aria-label="แผงควบคุม">
+    <div class="card">
+      <h3>โหมดการทดลอง</h3>
+      <div class="modes" role="tablist">
+        <button type="button" data-mode="double" class="on">สลิตคู่</button>
+        <button type="button" data-mode="single">สลิตเดี่ยว</button>
+        <button type="button" data-mode="grating">เกรตติ้ง</button>
+        <button type="button" data-mode="polar">โพลาไรเซชัน</button>
+      </div>
+      <p id="observe" class="hint"></p>
+      <div class="transport">
+        <button type="button" id="playBtn" class="on">หยุดชั่วคราว</button>
+        <button type="button" id="resetBtn">ตั้งค่าใหม่</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>แหล่งกำเนิดแสง</h3>
+      <div class="seg" role="group" aria-label="ชนิดของแสง">
+        <button type="button" id="lightMono" class="on">แสงสีเดียว</button>
+        <button type="button" id="lightWhite">แสงขาว</button>
+      </div>
+      <div class="field" id="boxLam">
+        <div class="field-head">
+          <label for="lam">ความยาวคลื่น λ</label>
+          <span><output id="lamOut">650 nm</output><i id="swatch" class="swatch"></i></span>
+        </div>
+        <input id="lam" type="range" min="380" max="750" step="1" value="650">
+      </div>
+      <div class="field" id="boxGap">
+        <div class="field-head">
+          <label for="gap">ระยะห่างระหว่างช่อง d</label>
+          <output id="gapOut">0.10 mm</output>
+        </div>
+        <input id="gap" type="range" min="0.02" max="0.50" step="0.01" value="0.10">
+      </div>
+      <div class="field" id="boxWidth" hidden>
+        <div class="field-head">
+          <label for="width">ความกว้างช่อง a</label>
+          <output id="widthOut">0.05 mm</output>
+        </div>
+        <input id="width" type="range" min="0.01" max="0.20" step="0.01" value="0.05">
+      </div>
+      <div class="field" id="boxN" hidden>
+        <label for="lines">จำนวนช่องต่อเซนติเมตร N</label>
+        <select id="lines">
+          <option value="100">100 ช่อง/cm</option>
+          <option value="300" selected>300 ช่อง/cm</option>
+          <option value="600">600 ช่อง/cm</option>
+          <option value="1000">1000 ช่อง/cm</option>
+          <option value="2000">2000 ช่อง/cm</option>
+          <option value="5000">5000 ช่อง/cm</option>
+        </select>
+        <p id="dNote" class="hint"></p>
+      </div>
+      <div class="field" id="boxDist">
+        <div class="field-head">
+          <label for="dist">ระยะจากสลิตถึงฉาก D</label>
+          <output id="distOut">1.0 m</output>
+        </div>
+        <input id="dist" type="range" min="0.5" max="2.5" step="0.1" value="1">
+      </div>
+      <div class="field" id="boxTheta" hidden>
+        <div class="field-head">
+          <label for="ang">มุมแผ่นที่สอง θ</label>
+          <output id="angOut">0°</output>
+        </div>
+        <input id="ang" type="range" min="0" max="90" step="1" value="0">
+      </div>
+      <div class="field">
+        <button type="button" id="phaseBtn">เฟสตรงกัน 0°</button>
+        <p id="phaseHint" class="hint"></p>
+      </div>
+      <div class="field">
+        <button type="button" id="rulerBtn">ไม้บรรทัด: ปิด</button>
+        <p id="rulerHint" class="hint">ลากจุด A และ B บนฉากเพื่อวัดระยะ y</p>
+      </div>
+    </div>
+  </section>
+  <section class="stage">
+    <p id="nowBar" class="now"></p>
+    <article class="card">
+      <h2>มุมมองด้านบน</h2>
+      <canvas id="topView" width="640" height="340"></canvas>
+      <p id="topCaption" class="caption"></p>
+    </article>
+    <article class="card" id="screenCard">
+      <h2 id="screenTitle">ภาพบนฉาก</h2>
+      <canvas id="screenView" width="640" height="236"></canvas>
+      <p id="screenCaption" class="caption"></p>
+      <p id="hoverReadout" class="caption"></p>
+      <div id="measureBox" class="measure" hidden></div>
+    </article>
+    <article class="card" id="polCard" hidden>
+      <h2>เวกเตอร์สนามไฟฟ้า</h2>
+      <canvas id="polView" width="640" height="250"></canvas>
+      <p class="caption">มองย้อนตามลำแสง คนละทิศกับมุมมองด้านบน แผ่นแรกให้สนามไฟฟ้าสั่นแนวตั้ง</p>
+    </article>
+  </section>
+  <section class="analytics">
+    <article class="card">
+      <h2 id="graphTitle">กราฟความเข้มแสง</h2>
+      <canvas id="graph" width="640" height="286"></canvas>
+      <p id="graphCaption" class="caption"></p>
+    </article>
+    <article class="card formula" id="formulaCard"></article>
+    <article class="card" id="calcCard"></article>
+    <article class="card mis" id="misCard" aria-live="polite"></article>
+  </section>
+</main>
+<nav class="dock" aria-label="เลือกส่วนของหน้า">
+  <button type="button" data-dock="stage" class="on" aria-pressed="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 8h18M3 16h18M8 4v4M16 16v4"/></svg>
+    ภาพจำลอง
+  </button>
+  <button type="button" data-dock="controls" aria-pressed="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.2" fill="currentColor" stroke="none"/><circle cx="15" cy="17" r="2.2" fill="currentColor" stroke="none"/></svg>
+    ปรับค่า
+  </button>
+  <button type="button" data-dock="learn" aria-pressed="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 5h12v14H6zM9 9h6M9 13h6"/></svg>
+    สูตร
+  </button>
+</nav>
+<script>
+"use strict";
+
+function wavelengthToRGB(nm) {
+  let r = 0, g = 0, b = 0;
+  if (nm >= 380 && nm < 440) { r = -(nm - 440) / 60; b = 1; }
+  else if (nm < 490) { g = (nm - 440) / 50; b = 1; }
+  else if (nm < 510) { g = 1; b = -(nm - 510) / 20; }
+  else if (nm < 580) { r = (nm - 510) / 70; g = 1; }
+  else if (nm < 645) { r = 1; g = -(nm - 645) / 65; }
+  else if (nm <= 780) { r = 1; }
+  let f = 1;
+  if (nm < 420) f = 0.3 + 0.7 * (nm - 380) / 40;
+  else if (nm > 700) f = 0.3 + 0.7 * (780 - nm) / 80;
+  f = Math.max(0, f);
+  return { r: Math.round(255 * r * f), g: Math.round(255 * g * f), b: Math.round(255 * b * f) };
+}
+
+function colorName(nm) {
+  if (nm < 450) return "ม่วง";
+  if (nm < 485) return "น้ำเงิน";
+  if (nm < 500) return "ฟ้า";
+  if (nm < 570) return "เขียว";
+  if (nm < 590) return "เหลือง";
+  if (nm < 620) return "ส้ม";
+  return "แดง";
+}
+
+function subNum(n) {
+  const map = "₀₁₂₃₄₅₆₇₈₉";
+  const sign = n < 0 ? "₋" : "";
+  return sign + String(Math.abs(n)).replace(/\d/g, function (d) { return map[d]; });
+}
+
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+function fringeY(m, spacing, lambda, D) {
+  if (m === 0) return 0;
+  const s = Math.abs(m) * lambda / spacing;
+  if (!(s < 1) || !(spacing > 0)) return null;
+  return Math.sign(m) * D * Math.tan(Math.asin(s));
+}
+
+function fringeAngle(m, spacing, lambda) {
+  const s = Math.abs(m) * lambda / spacing;
+  if (!(s <= 1) || !(spacing > 0)) return null;
+  return Math.asin(s);
+}
+
+function smallAngleY(m, spacing, lambda, D) {
+  return m * lambda * D / spacing;
+}
+
+function slitCount(N) {
+  if (N <= 100) return 8;
+  if (N <= 300) return 20;
+  if (N <= 600) return 40;
+  if (N <= 1000) return 80;
+  if (N <= 2000) return 140;
+  return 250;
+}
+
+function doubleI(y, lambda) {
+  const d = state.dMm * 1e-3;
+  const sinT = y / Math.hypot(y, state.D);
+  const delta = (2 * Math.PI * d * sinT) / lambda;
+  const phi = state.phase180 ? Math.PI : 0;
+  const c = Math.cos(0.5 * (delta + phi));
+  return c * c;
+}
+
+function singleI(y, lambda) {
+  const a = state.aMm * 1e-3;
+  const sinT = y / Math.hypot(y, state.D);
+  const beta = (Math.PI * a * sinT) / lambda;
+  if (Math.abs(beta) < 1e-8) return 1;
+  const z = Math.sin(beta) / beta;
+  return z * z;
+}
+
+function orderCoeffs(lambda, d, half) {
+  const sinEdge = half / Math.hypot(half, state.D);
+  const limit = 0.998 * d / lambda;
+  const mMax = Math.min(limit, sinEdge * d / lambda + 0.8);
+  const out = [];
+  if (!state.phase180) {
+    const nmax = Math.max(0, Math.floor(mMax));
+    for (let n = -nmax; n <= nmax; n++) out.push(n);
+  } else {
+    for (let m = 0.5; m <= mMax + 1e-9; m += 1) out.push(-m, m);
+  }
+  return out;
+}
+
+function computePeaks(lambda, half, minHw) {
+  const d = 1e-2 / state.N;
+  const D = state.D;
+  const M = slitCount(state.N);
+  const peaks = [];
+  const coeffs = orderCoeffs(lambda, d, half);
+  for (let i = 0; i < coeffs.length; i++) {
+    const m = coeffs[i];
+    const s0 = m * lambda / d;
+    if (!(Math.abs(s0) < 0.999)) continue;
+    const th = Math.asin(s0);
+    const y0 = D * Math.tan(th);
+    const s1 = (m + 1 / M) * lambda / d;
+    let hw;
+    if (Math.abs(s1) < 0.999) hw = Math.abs(D * Math.tan(Math.asin(s1)) - y0);
+    else hw = Math.abs((lambda * D) / (M * d * Math.max(0.25, Math.cos(th))));
+    if (!(hw > 0)) hw = minHw;
+    hw = Math.max(hw, minHw || 0);
+    peaks.push({ y0: y0, hw: hw, m: m });
+  }
+  return peaks;
+}
+
+function gratingI(y, peaks) {
+  let I = 0;
+  for (let i = 0; i < peaks.length; i++) {
+    const du = y - peaks[i].y0;
+    const hw = peaks[i].hw;
+    if (du > hw * 8 || -du > hw * 8) continue;
+    const u = du / hw;
+    const z = Math.abs(u) < 1e-4 ? 1 : Math.sin(Math.PI * u) / (Math.PI * u);
+    I += z * z;
+  }
+  return I > 1 ? 1 : I;
+}
+
+function intensityAt(y, lambda, peaks) {
+  if (state.mode === "double") return doubleI(y, lambda);
+  if (state.mode === "single") return singleI(y, lambda);
+  return gratingI(y, peaks || computePeaks(lambda, viewHalf(), viewHalf() * 1e-5));
+}
+
+function malus() {
+  const c = Math.cos(state.thetaDeg * Math.PI / 180);
+  const cos2 = c * c;
+  return { I1: 0.5, cos2: cos2, I2: 0.5 * cos2 };
+}
+
+function angleHalf() {
+  const deg = state.mode === "double" ? 2.4 : state.mode === "single" ? 6 : 28;
+  return state.D * Math.tan(deg * Math.PI / 180);
+}
+
+function viewHalf() {
+  if (state.mode !== "grating") return angleHalf();
+  const lam = (state.white ? 700 : state.lambdaNm) * 1e-9;
+  const d = 1e-2 / state.N;
+  const m2 = state.phase180 ? 2.5 : 2;
+  const m1 = state.phase180 ? 0.5 : 1;
+  const y2 = fringeY(m2, d, lam, state.D);
+  const y1 = fringeY(m1, d, lam, state.D);
+  const y = (y2 || y1 || 0.01) * 1.35;
+  return Math.max(Math.abs(y), state.D * Math.tan(0.35 * Math.PI / 180));
+}
+
+function deltaY(lambda) { return lambda * state.D / (state.dMm * 1e-3); }
+function centralW(lambda) { return 2 * lambda * state.D / (state.aMm * 1e-3); }
+
+function displayLines(R, G, B) {
+  const energy = Math.max(R, G, B);
+  if (energy < 0.012) return [0, 0, 0];
+  const shown = Math.pow(Math.min(energy, 1), 0.5);
+  const gain = shown / energy;
+  return [
+    Math.min(255, Math.round(255 * R * gain)),
+    Math.min(255, Math.round(255 * G * gain)),
+    Math.min(255, Math.round(255 * B * gain))
+  ];
+}
+
+function displayWhite(R, G, B) {
+  let energy = Math.max(R, G, B);
+  if (energy < 0.004) return [0, 0, 0];
+  if (energy > 1) { R /= energy; G /= energy; B /= energy; energy = 1; }
+  const gain = Math.min(24, Math.pow(energy, 0.42) / energy);
+  return [
+    Math.min(255, Math.round(255 * R * gain)),
+    Math.min(255, Math.round(255 * G * gain)),
+    Math.min(255, Math.round(255 * B * gain))
+  ];
+}
+
+function sampleColumn(y) {
+  if (state.white) {
+    let R = 0, G = 0, B = 0;
+    for (let i = 0; i < SPECTRUM.length; i++) {
+      const s = SPECTRUM[i];
+      const I = intensityAt(y, s.lambda);
+      R += s.r * I; G += s.g * I; B += s.b * I;
+    }
+    return displayWhite(R / SPECTRUM.sumR, G / SPECTRUM.sumG, B / SPECTRUM.sumB);
+  }
+  const I = Math.pow(clamp(intensityAt(y, state.lambdaNm * 1e-9), 0, 1), 0.82);
+  const c = wavelengthToRGB(state.lambdaNm);
+  return [c.r * I, c.g * I, c.b * I];
+}
+
+function fmtLen(m) {
+  if (m == null || !isFinite(m)) return "—";
+  if (m === 0) return "0";
+  const sign = m < 0 ? "−" : "";
+  const a = Math.abs(m);
+  if (a >= 0.995) return sign + a.toFixed(2) + " m";
+  if (a >= 0.00995) return sign + (a * 100).toFixed(2) + " cm";
+  if (a >= 0.000999) return sign + (a * 1000).toFixed(2) + " mm";
+  return sign + (a * 1e6).toFixed(1) + " μm";
+}
+
+function fmtDegFromSin(m, spacing, lambda) {
+  const ang = fringeAngle(m, spacing, lambda);
+  if (ang == null) return "เกิดไม่ได้ (sinθ > 1)";
+  return (ang * 180 / Math.PI).toFixed(2) + "°";
+}
+
+function axisInfo(half) {
+  const a = Math.abs(half);
+  let scale, name;
+  if (a < 0.08) { scale = 1000; name = "mm"; }
+  else if (a < 0.8) { scale = 100; name = "cm"; }
+  else { scale = 1; name = "m"; }
+  const halfU = half * scale;
+  const raw = (2 * halfU) / 6;
+  const pow = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 1e-9))));
+  const n = raw / pow;
+  const f = n < 1.5 ? 1 : n < 3.5 ? 2 : n < 7.5 ? 5 : 10;
+  const step = f * pow;
+  const ticks = [];
+  const i0 = Math.ceil(-halfU / step - 1e-9);
+  const i1 = Math.floor(halfU / step + 1e-9);
+  for (let i = i0; i <= i1; i++) ticks.push((i * step) / scale);
+  return { scale: scale, name: name, ticks: ticks };
+}
+
+function fmtTick(m, info) {
+  const v = m * info.scale;
+  const digits = info.name === "m" ? 2 : (Math.abs(v) >= 10 ? 0 : 1);
+  const n = Number(v.toFixed(digits));
+  return Object.is(n, -0) ? "0" : String(n);
+}
+
+function differs(a, b) {
+  if (a == null || b == null || !isFinite(a) || !isFinite(b)) return false;
+  return Math.abs(a - b) / Math.max(Math.abs(a), Math.abs(b), 1e-12) > 0.01;
+}
+
+function near(a, b) {
+  if (a == null || b == null || !isFinite(a) || !isFinite(b)) return false;
+  return Math.abs(a - b) / Math.max(Math.abs(a), Math.abs(b), 1e-12) < 0.06;
+}
+
+const state = {
+  mode: "double",
+  lambdaNm: 650,
+  white: false,
+  dMm: 0.10,
+  aMm: 0.05,
+  N: 300,
+  thetaDeg: 0,
+  D: 1.0,
+  phase180: false,
+  ruler: false,
+  rulerCustom: false,
+  rulerA: 0,
+  rulerB: 0.0065,
+  playing: true,
+  time: 0,
+  hoverY: null,
+  drag: null
+};
+
+const SPECTRUM = [];
+(function () {
+  let sumR = 0, sumG = 0, sumB = 0;
+  for (let nm = 400; nm <= 700; nm += 5) {
+    const c = wavelengthToRGB(nm);
+    SPECTRUM.push({ nm: nm, lambda: nm * 1e-9, r: c.r, g: c.g, b: c.b });
+    sumR += c.r; sumG += c.g; sumB += c.b;
+  }
+  SPECTRUM.sumR = sumR; SPECTRUM.sumG = sumG; SPECTRUM.sumB = sumB;
+})();
+
+const REF = {
+  double: 650e-9 * 1 / 1e-4,
+  single: 2 * 650e-9 * 1 / 5e-5,
+  grating: Math.tan(Math.asin(650e-9 / (0.01 / 300)))
+};
+
+function applyDefaults() {
+  state.mode = "double";
+  state.lambdaNm = 650;
+  state.white = false;
+  state.dMm = 0.10;
+  state.aMm = 0.05;
+  state.N = 300;
+  state.thetaDeg = 0;
+  state.D = 1.0;
+  state.phase180 = false;
+  state.ruler = false;
+  state.rulerCustom = false;
+  state.playing = true;
+  state.time = 0;
+  state.hoverY = null;
+  state.drag = null;
+  if (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    state.playing = false;
+  }
+  placeRulerDefault();
+}
+
+function placeRulerDefault() {
+  const lam = (state.white ? 650 : state.lambdaNm) * 1e-9;
+  const D = state.D;
+  if (state.mode === "double") {
+    const d = state.dMm * 1e-3;
+    if (state.phase180) {
+      state.rulerA = fringeY(0.5, d, lam, D) || 0;
+      state.rulerB = fringeY(1.5, d, lam, D) || state.rulerA;
+    } else {
+      state.rulerA = 0;
+      state.rulerB = fringeY(1, d, lam, D) || deltaY(lam);
+    }
+  } else if (state.mode === "single") {
+    const y1 = fringeY(1, state.aMm * 1e-3, lam, D) || 0;
+    state.rulerA = -y1;
+    state.rulerB = y1;
+  } else if (state.mode === "grating") {
+    const d = 1e-2 / state.N;
+    const m = state.phase180 ? 0.5 : 1;
+    state.rulerA = 0;
+    state.rulerB = fringeY(m, d, lam, D) || 0;
+  }
+}
+
+function runTests() {
+  const y = fringeY(1, 1e-4, 650e-9, 1);
+  if (Math.abs(y / 0.0065 - 1) > 0.01) throw new Error("double y " + y);
+  state.dMm = 0.1; state.D = 1; state.phase180 = false; state.aMm = 0.05; state.mode = "double"; state.N = 300;
+  const yB = fringeY(1, 1e-4, 650e-9, 1);
+  const yD = fringeY(0.5, 1e-4, 650e-9, 1);
+  if (Math.abs(doubleI(yB, 650e-9) - 1) > 1e-4) throw new Error("bright");
+  if (doubleI(yD, 650e-9) > 1e-4) throw new Error("dark");
+  if (Math.abs(doubleI(0, 650e-9) - 1) > 1e-6) throw new Error("center");
+  state.phase180 = true;
+  if (doubleI(0, 650e-9) > 1e-6) throw new Error("phase center");
+  if (Math.abs(doubleI(yD, 650e-9) - 1) > 1e-4) throw new Error("phase swap");
+  state.phase180 = false;
+  const yd = fringeY(1, 5e-5, 650e-9, 1);
+  if (singleI(yd, 650e-9) > 1e-5) throw new Error("slit dark");
+  if (Math.abs(singleI(0, 650e-9) - 1) > 1e-6) throw new Error("slit center");
+  const dG = 0.01 / 5000;
+  const s2 = 650e-9 / dG;
+  if (Math.abs(s2 - 0.325) > 1e-9) throw new Error("sin " + s2);
+  const yG = fringeY(1, dG, 650e-9, 1);
+  const ex = Math.tan(Math.asin(0.325));
+  if (Math.abs(yG - ex) > 1e-6) throw new Error("grating y");
+  if (!(Math.abs(yG - 0.325) / 0.325 > 0.01)) throw new Error("angle check");
+  state.thetaDeg = 60;
+  if (Math.abs(malus().I2 - 0.125) > 1e-9) throw new Error("malus");
+  state.thetaDeg = 90;
+  if (malus().I2 > 1e-12) throw new Error("malus90");
+  state.thetaDeg = 0;
+  if (Math.abs(malus().I1 - 0.5) > 1e-12) throw new Error("half");
+  applyDefaults();
+}
+
+const strips = { close: null, closeKey: "", angle: null, angleKey: "" };
+let screenMetrics = null;
+let textKey = "";
+let lastMeasure = "";
+let lastHover = "";
+
+function paramKey() {
+  return [state.mode, state.lambdaNm, state.white ? 1 : 0, state.dMm, state.aMm, state.N, state.D, state.phase180 ? 1 : 0].join("|");
+}
+
+function buildStrip(half, bw) {
+  bw = Math.max(32, Math.round(bw));
+  const canvas = document.createElement("canvas");
+  canvas.width = bw;
+  canvas.height = 1;
+  const ctx = canvas.getContext("2d");
+  const img = ctx.createImageData(bw, 1);
+  const data = img.data;
+  if (state.mode === "grating") {
+    const accR = new Float32Array(bw);
+    const accG = new Float32Array(bw);
+    const accB = new Float32Array(bw);
+    const sources = state.white ? SPECTRUM : [{ lambda: state.lambdaNm * 1e-9, mono: true }];
+    const minHw = 1.4 * 2 * half / bw;
+    for (let s = 0; s < sources.length; s++) {
+      const src = sources[s];
+      const peaks = computePeaks(src.lambda, half, minHw);
+      for (let p = 0; p < peaks.length; p++) {
+        const peak = peaks[p];
+        const xc = ((peak.y0 / half) * 0.5 + 0.5) * (bw - 1);
+        const hwPx = Math.max(0.75, (peak.hw / half) * ((bw - 1) / 2));
+        const rad = Math.ceil(hwPx * 5);
+        const x0 = Math.max(0, Math.floor(xc - rad));
+        const x1 = Math.min(bw - 1, Math.ceil(xc + rad));
+        for (let x = x0; x <= x1; x++) {
+          const u = (x - xc) / hwPx;
+          const z = Math.abs(u) < 1e-4 ? 1 : Math.sin(Math.PI * u) / (Math.PI * u);
+          const ss = z * z;
+          if (src.mono) accR[x] += ss;
+          else { accR[x] += src.r * ss; accG[x] += src.g * ss; accB[x] += src.b * ss; }
+        }
+      }
+    }
+    if (state.white) {
+      for (let x = 0; x < bw; x++) {
+        const col = displayLines(accR[x] / SPECTRUM.sumR, accG[x] / SPECTRUM.sumG, accB[x] / SPECTRUM.sumB);
+        data[x * 4] = col[0]; data[x * 4 + 1] = col[1]; data[x * 4 + 2] = col[2]; data[x * 4 + 3] = 255;
+      }
+    } else {
+      const c = wavelengthToRGB(state.lambdaNm);
+      for (let x = 0; x < bw; x++) {
+        const k = Math.pow(Math.min(1, accR[x]), 0.82);
+        data[x * 4] = c.r * k; data[x * 4 + 1] = c.g * k; data[x * 4 + 2] = c.b * k; data[x * 4 + 3] = 255;
+      }
+    }
+  } else {
+    for (let x = 0; x < bw; x++) {
+      const y = ((x / (bw - 1)) * 2 - 1) * half;
+      const col = sampleColumn(y);
+      data[x * 4] = col[0]; data[x * 4 + 1] = col[1]; data[x * 4 + 2] = col[2]; data[x * 4 + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return canvas;
+}
+
+function getStrip(kind, half, bw) {
+  const key = kind + "|" + bw + "|" + half.toExponential(4) + "|" + paramKey();
+  if (strips[kind] && strips[kind + "Key"] === key) return strips[kind];
+  strips[kind] = buildStrip(half, bw);
+  strips[kind + "Key"] = key;
+  return strips[kind];
+}
+
+function prep(canvas) {
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const rect = canvas.getBoundingClientRect();
+  const w = Math.max(10, rect.width);
+  const h = Math.max(10, rect.height);
+  const bw = Math.round(w * dpr);
+  const bh = Math.round(h * dpr);
+  if (canvas.width !== bw || canvas.height !== bh) {
+    canvas.width = bw; canvas.height = bh;
+  }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx: ctx, w: w, h: h };
+}
+
+function setFont(ctx, size, weight) {
+  ctx.font = (weight || "400") + " " + size + "px Leelawadee UI, Tahoma, sans-serif";
+}
+
+function beamColor() {
+  if (state.white) return "#f4f7ff";
+  const c = wavelengthToRGB(state.lambdaNm);
+  return "rgb(" + c.r + "," + c.g + "," + c.b + ")";
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, r);
+  else ctx.rect(x, y, w, h);
+}
+
+function drawTop() {
+  const canvas = document.getElementById("topView");
+  const box = prep(canvas);
+  const ctx = box.ctx, w = box.w, h = box.h;
+  ctx.clearRect(0, 0, w, h);
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, "#10192c");
+  g.addColorStop(1, "#0a101c");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+  if (state.mode === "polar") { drawPolarBench(ctx, w, h); return; }
+  drawWaveBench(ctx, w, h);
+}
+
+function drawWaveBench(ctx, w, h) {
+  const mid = h * 0.42;
+  const plateX = Math.max(150, w * 0.30);
+  const screenX = Math.max(plateX + 120, w * 0.78);
+  const screenH = Math.min(168, h * 0.48);
+  const screenTop = mid - screenH / 2;
+  const color = beamColor();
+  ctx.strokeStyle = "#314864";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(36, mid + 78); ctx.lineTo(w - 24, mid + 78); ctx.stroke();
+
+  roundRect(ctx, 28, mid - 22, 46, 44, 6);
+  ctx.fillStyle = "#1b263c"; ctx.fill();
+  ctx.strokeStyle = "#41587e"; ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.shadowColor = color; ctx.shadowBlur = 16;
+  roundRect(ctx, 62, mid - 5, 16, 10, 3); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = color;
+  ctx.globalAlpha = 0.85;
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(78, mid); ctx.lineTo(plateX, mid); ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  const slits = slitPoints(mid);
+  drawPlate(ctx, plateX, mid, slits);
+  drawWavelets(ctx, plateX, slits, screenX - plateX - 16);
+  drawTeachingRays(ctx, plateX, mid, screenX, screenTop, screenH);
+
+  const strip = getStrip("angle", angleHalf(), 480);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(screenX, screenTop, 16, screenH);
+  ctx.clip();
+  ctx.translate(screenX, screenTop + screenH);
+  ctx.rotate(-Math.PI / 2);
+  ctx.drawImage(strip, 0, 0, screenH, 16);
+  ctx.restore();
+  ctx.strokeStyle = "#9fb4d4";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(screenX, screenTop, 16, screenH);
+
+  setFont(ctx, 12);
+  ctx.fillStyle = "#c5d4ee";
+  ctx.textAlign = "center";
+  ctx.fillText("แหล่งกำเนิด", 50, mid + 40);
+  ctx.fillText(plateName(), plateX, mid + 96);
+  ctx.fillText("ฉาก", screenX + 8, screenTop - 8);
+  dimLine(ctx, plateX, screenX, mid + 58, "D = " + state.D.toFixed(1) + " m");
+  const deg = state.mode === "double" ? "2.4" : state.mode === "single" ? "6" : "28";
+  setFont(ctx, 11);
+  ctx.fillStyle = "#93a4c4";
+  ctx.fillText("±" + deg + "°", screenX + 8, screenTop + screenH + 16);
+  drawInset(ctx, w, h);
+  if (!state.playing) {
+    setFont(ctx, 12, "700");
+    ctx.fillStyle = "#ffbf5c";
+    ctx.textAlign = "left";
+    ctx.fillText("หยุดชั่วคราว", 12, 20);
+  }
+}
+
+function plateName() {
+  if (state.mode === "double") return "สลิตคู่";
+  if (state.mode === "single") return "สลิตเดี่ยว";
+  return "เกรตติ้ง";
+}
+
+function slitPoints(mid) {
+  if (state.mode === "double") return [mid - 16, mid + 16];
+  if (state.mode === "single") return [mid];
+  const pts = [];
+  for (let i = -3; i <= 3; i++) pts.push(mid + i * 9);
+  return pts;
+}
+
+function drawPlate(ctx, plateX, mid, slits) {
+  ctx.fillStyle = "#8ea0bd";
+  const top = mid - 74, bot = mid + 74;
+  let cursor = top;
+  const gaps = slits.map(function (y) { return [y - 3, y + 3]; });
+  for (let i = 0; i < gaps.length; i++) {
+    ctx.fillRect(plateX - 5, cursor, 10, gaps[i][0] - cursor);
+    cursor = gaps[i][1];
+  }
+  ctx.fillRect(plateX - 5, cursor, 10, bot - cursor);
+  if (state.phase180 && state.mode !== "single") {
+    setFont(ctx, 11, "700");
+    ctx.fillStyle = "#ffbf5c";
+    ctx.textAlign = "left";
+    ctx.fillText("เฟส 180°", plateX + 10, slits[slits.length - 1] + 4);
+  }
+}
+
+function drawWavelets(ctx, plateX, slits, maxR) {
+  const color = state.white ? "rgba(210,225,255,.9)" : beamColor();
+  const gap = 15;
+  ctx.lineWidth = 1.2;
+  for (let i = 0; i < slits.length; i++) {
+    const shift = state.phase180 ? i * gap / 2 : 0;
+    const start = (state.time * 42 + shift) % gap;
+    for (let r = start; r < maxR; r += gap) {
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.globalAlpha = 0.28 * (1 - r / maxR);
+      ctx.arc(plateX, slits[i], r, -0.85, 0.85);
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawTeachingRays(ctx, plateX, mid, screenX, screenTop, screenH) {
+  const aHalf = angleHalf();
+  const halfPx = screenH / 2;
+  function sy(y) {
+    const frac = y / aHalf;
+    return { y: mid - clamp(frac, -1, 1) * halfPx, clip: Math.abs(frac) > 1 };
+  }
+  const D = state.D;
+  if (state.mode === "single") {
+    const a = state.aMm * 1e-3;
+    const lam = (state.white ? 650 : state.lambdaNm) * 1e-9;
+    const y1 = fringeY(1, a, lam, D);
+    if (y1 != null) {
+      const p = sy(y1), n = sy(-y1);
+      const c = wavelengthToRGB(state.white ? 650 : state.lambdaNm);
+      ctx.fillStyle = "rgba(" + c.r + "," + c.g + "," + c.b + ",.16)";
+      ctx.beginPath();
+      ctx.moveTo(plateX, mid); ctx.lineTo(screenX, p.y); ctx.lineTo(screenX, n.y); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "rgb(" + c.r + "," + c.g + "," + c.b + ")";
+      ctx.setLineDash([4, 3]); ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(plateX, mid); ctx.lineTo(screenX, p.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(plateX, mid); ctx.lineTo(screenX, n.y); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    return;
+  }
+  const spacing = state.mode === "double" ? state.dMm * 1e-3 : 1e-2 / state.N;
+  const waves = state.white ? [460, 530, 650] : [state.lambdaNm];
+  const orders = state.phase180 ? [0.5, 1.5] : [0, 1, 2];
+  waves.forEach(function (nm) {
+    const c = wavelengthToRGB(nm);
+    orders.forEach(function (m) {
+      [m, m === 0 ? null : -m].forEach(function (mm) {
+        if (mm == null) return;
+        if (state.white && mm === 0 && nm !== 650) return;
+        const y = fringeY(mm, spacing, nm * 1e-9, D);
+        if (y == null) return;
+        const p = sy(y);
+        if (p.clip) return;
+        ctx.strokeStyle = "rgb(" + c.r + "," + c.g + "," + c.b + ")";
+        ctx.globalAlpha = mm === 0 ? 0.95 : 0.75;
+        ctx.lineWidth = mm === 0 ? 2 : 1.2;
+        ctx.beginPath(); ctx.moveTo(plateX, mid); ctx.lineTo(screenX, p.y); ctx.stroke();
+      });
+    });
+  });
+  ctx.globalAlpha = 1;
+}
+
+function dimLine(ctx, x1, x2, y, label) {
+  ctx.strokeStyle = "#93a4c4";
+  ctx.fillStyle = "#d5e2f7";
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x1, y - 4); ctx.lineTo(x1, y + 4); ctx.moveTo(x2, y - 4); ctx.lineTo(x2, y + 4); ctx.stroke();
+  setFont(ctx, 12);
+  ctx.textAlign = "center";
+  ctx.fillText(label, (x1 + x2) / 2, y - 6);
+}
+
+function drawInset(ctx, w, h) {
+  const iw = Math.min(210, w - 20), ih = 64;
+  const x = 10, y = h - ih - 8;
+  roundRect(ctx, x, y, iw, ih, 8);
+  ctx.fillStyle = "rgba(8,14,28,.88)"; ctx.fill();
+  ctx.strokeStyle = "#314864"; ctx.stroke();
+  setFont(ctx, 11);
+  ctx.fillStyle = "#93a4c4";
+  ctx.textAlign = "left";
+  ctx.fillText("ขยายบริเวณช่อง (ไม่ได้สัดส่วนกับ D)", x + 8, y + 16);
+  ctx.strokeStyle = "#d5e2f7";
+  ctx.lineWidth = 1.4;
+  if (state.mode === "double") {
+    const x1 = x + 48, x2 = x + 120;
+    ctx.strokeRect(x1, y + 28, 8, 22);
+    ctx.strokeRect(x2, y + 28, 8, 22);
+    dimLine(ctx, x1 + 8, x2, y + 39, "");
+    ctx.fillStyle = "#ffd56a";
+    setFont(ctx, 12, "700");
+    ctx.textAlign = "center";
+    ctx.fillText("d = " + state.dMm.toFixed(2) + " mm", (x1 + x2) / 2 + 4, y + 34);
+  } else if (state.mode === "single") {
+    ctx.strokeRect(x + 70, y + 28, 28, 22);
+    ctx.fillStyle = "#ffd56a";
+    setFont(ctx, 12, "700");
+    ctx.textAlign = "left";
+    ctx.fillText("a = " + state.aMm.toFixed(2) + " mm", x + 108, y + 43);
+  } else {
+    for (let i = 0; i < 6; i++) ctx.strokeRect(x + 16 + i * 14, y + 30, 3, 18);
+    ctx.fillStyle = "#ffd56a";
+    setFont(ctx, 12, "700");
+    ctx.textAlign = "left";
+    const d = 0.01 / state.N;
+    ctx.fillText("N = " + state.N + " /cm", x + 108, y + 36);
+    ctx.fillText("d = " + fmtLen(d), x + 108, y + 52);
+  }
+}
+
+function drawPolarBench(ctx, w, h) {
+  const mid = h * 0.46;
+  const xP = w * 0.34, xA = w * 0.62, xS = w * 0.84;
+  const color = beamColor();
+  roundRect(ctx, 28, mid - 22, 46, 44, 6);
+  ctx.fillStyle = "#1b263c"; ctx.fill(); ctx.strokeStyle = "#41587e"; ctx.stroke();
+  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.globalAlpha = 0.45;
+  for (let k = 0; k < 3; k++) {
+    ctx.beginPath();
+    for (let x = 78; x < xP - 8; x += 3) {
+      const yy = mid + Math.sin((x + k * 20) * 0.18 - state.time * 7 + k) * (10 + k * 4);
+      if (x === 78) ctx.moveTo(x, yy); else ctx.lineTo(x, yy);
+    }
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  drawPolarSheet(ctx, xP, mid, 0, "โพลารอยด์");
+  const amp1 = 22;
+  ctx.strokeStyle = color; ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let x = xP + 14; x < xA - 14; x += 2) {
+    const yy = mid + Math.sin((x - xP) * 0.2 - state.time * 7) * amp1;
+    if (x === xP + 14) ctx.moveTo(x, yy); else ctx.lineTo(x, yy);
+  }
+  ctx.stroke();
+  drawPolarSheet(ctx, xA, mid, state.thetaDeg, "แผ่นวิเคราะห์");
+  const cos = Math.cos(state.thetaDeg * Math.PI / 180);
+  const amp2 = amp1 * Math.abs(cos);
+  ctx.beginPath();
+  if (amp2 < 1.2) {
+    ctx.globalAlpha = 0.35;
+    ctx.moveTo(xA + 14, mid); ctx.lineTo(xS - 24, mid); ctx.stroke();
+    ctx.globalAlpha = 1;
+    setFont(ctx, 12, "700"); ctx.fillStyle = "#ffbf5c"; ctx.textAlign = "center";
+    ctx.fillText("ไม่มีแสงผ่าน", (xA + xS) / 2, mid - 16);
+  } else {
+    for (let x = xA + 14; x < xS - 24; x += 2) {
+      const yy = mid + Math.sin((x - xA) * 0.2 - state.time * 7) * amp2;
+      if (x === xA + 14) ctx.moveTo(x, yy); else ctx.lineTo(x, yy);
+    }
+    ctx.stroke();
+  }
+  const spotR = 18;
+  ctx.beginPath(); ctx.arc(xS, mid, spotR, 0, Math.PI * 2);
+  ctx.fillStyle = "#05070e"; ctx.fill(); ctx.strokeStyle = "#9fb4d4"; ctx.stroke();
+  ctx.beginPath(); ctx.arc(xS, mid, spotR - 3, 0, Math.PI * 2);
+  ctx.fillStyle = color; ctx.globalAlpha = Math.max(0, cos * cos); ctx.fill(); ctx.globalAlpha = 1;
+  setFont(ctx, 12); ctx.fillStyle = "#c5d4ee"; ctx.textAlign = "center";
+  ctx.fillText("แหล่งกำเนิด", 50, mid + 42);
+  ctx.fillText("ฉาก", xS, mid + 42);
+  if (!state.playing) {
+    setFont(ctx, 12, "700"); ctx.fillStyle = "#ffbf5c"; ctx.textAlign = "left";
+    ctx.fillText("หยุดชั่วคราว", 12, 20);
+  }
+}
+
+function drawPolarSheet(ctx, x, y, deg, label) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(deg * Math.PI / 180);
+  roundRect(ctx, -7, -48, 14, 96, 3);
+  ctx.fillStyle = "rgba(190,210,240,.15)"; ctx.fill();
+  ctx.strokeStyle = "#d5e2f7"; ctx.lineWidth = 1.4; ctx.stroke();
+  ctx.beginPath();
+  for (let i = -36; i <= 36; i += 8) { ctx.moveTo(-5, i); ctx.lineTo(5, i); }
+  ctx.strokeStyle = "#8eb7ff"; ctx.stroke();
+  ctx.restore();
+  setFont(ctx, 12); ctx.fillStyle = "#c5d4ee"; ctx.textAlign = "center";
+  ctx.fillText(label, x, y + 68);
+}
+
+function screenLayout(w, h) {
+  const top = 32, bottom = 36, left = 10, right = 10;
+  const plotW = Math.max(20, w - left - right);
+  const plotH = Math.max(20, h - top - bottom);
+  const half = viewHalf();
+  return {
+    plotX: left, plotY: top, plotW: plotW, plotH: plotH, half: half,
+    xOf: function (y) { return left + ((y / half) * 0.5 + 0.5) * plotW; },
+    yOfX: function (x) { return (((x - left) / plotW) - 0.5) * 2 * half; }
+  };
+}
+
+function drawScreen() {
+  const canvas = document.getElementById("screenView");
+  const box = prep(canvas);
+  const ctx = box.ctx, w = box.w, h = box.h;
+  const lay = screenLayout(w, h);
+  screenMetrics = lay;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "#070b14";
+  ctx.fillRect(0, 0, w, h);
+  if (state.mode === "polar") { drawPolarSpot(ctx, w, h); return; }
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const bw = Math.min(1000, Math.max(64, Math.round(lay.plotW * dpr)));
+  const strip = getStrip("close", lay.half, bw);
+  ctx.drawImage(strip, lay.plotX, lay.plotY, lay.plotW, lay.plotH);
+  ctx.strokeStyle = "rgba(255,255,255,.25)";
+  ctx.strokeRect(lay.plotX, lay.plotY, lay.plotW, lay.plotH);
+  drawMarks(ctx, lay);
+  drawAxis(ctx, lay, h);
+  if (state.hoverY != null) {
+    const x = lay.xOf(state.hoverY);
+    ctx.strokeStyle = "rgba(255,255,255,.7)";
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(x, lay.plotY); ctx.lineTo(x, lay.plotY + lay.plotH); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  if (state.ruler) drawRuler(ctx, lay);
+}
+
+function drawPolarSpot(ctx, w, h) {
+  const m = malus();
+  const color = beamColor();
+  ctx.fillStyle = "#070b14";
+  ctx.fillRect(0, 0, w, h);
+  const cx = w / 2, cy = h / 2 + 6, R = Math.min(w, h) * 0.28;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.fillStyle = "#10131c"; ctx.fill(); ctx.strokeStyle = "#9fb4d4"; ctx.lineWidth = 2; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, R - 4, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.globalAlpha = m.cos2;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  setFont(ctx, 22, "700"); ctx.fillStyle = "#fff"; ctx.textAlign = "center";
+  ctx.fillText((m.I2 * 100).toFixed(1) + "%", cx, cy + 8);
+  setFont(ctx, 13); ctx.fillStyle = "#c5d4ee";
+  ctx.fillText("I₂/I₀ ของแสงเดิม", cx, cy + R + 22);
+}
+
+function marks() {
+  const D = state.D;
+  const lam = (state.white ? 650 : state.lambdaNm) * 1e-9;
+  const out = [];
+  function add(m, spacing, text, kind) {
+    const y = fringeY(m, spacing, lam, D);
+    if (y == null || Math.abs(y) > viewHalf() * 0.98) return;
+    out.push({ y: y, text: text, kind: kind });
+  }
+  if (state.mode === "double") {
+    const d = state.dMm * 1e-3;
+    if (state.phase180) add(0, d, "มืด", "dark");
+    else add(0, d, "A" + subNum(0), "bright");
+    for (let n = 1; n <= 4; n++) {
+      if (state.phase180) {
+        add(n - 0.5, d, "A" + subNum(n), "bright");
+        add(-(n - 0.5), d, "A" + subNum(-n), "bright");
+        add(n, d, "N" + subNum(n), "dark");
+        add(-n, d, "N" + subNum(-n), "dark");
+      } else {
+        add(n, d, "A" + subNum(n), "bright");
+        add(-n, d, "A" + subNum(-n), "bright");
+        add(n - 0.5, d, "N" + subNum(n), "dark");
+        add(-(n - 0.5), d, "N" + subNum(-n), "dark");
+      }
+    }
+  } else if (state.mode === "single") {
+    const a = state.aMm * 1e-3;
+    add(0, a, "สว่างกลาง", "bright");
+    for (let n = 1; n <= 4; n++) {
+      add(n, a, "N" + subNum(n), "dark");
+      add(-n, a, "N" + subNum(-n), "dark");
+    }
+  } else {
+    const d = 1e-2 / state.N;
+    const step = state.phase180 ? 0.5 : 1;
+    const start = state.phase180 ? 0.5 : 0;
+    for (let n = 0; n <= 4; n++) {
+      const m = start + n;
+      if (m === 0) add(0, d, "n=0", "bright");
+      else {
+        add(m, d, "n=" + (state.phase180 ? n + 1 : n), "bright");
+        add(-m, d, "n=" + (state.phase180 ? n + 1 : n), "bright");
+      }
+    }
+  }
+  return out;
+}
+
+function drawMarks(ctx, lay) {
+  const list = marks().filter(function (m) { return m.y >= -lay.half && m.y <= lay.half; });
+  list.sort(function (a, b) { return a.y - b.y; });
+  const last = { bright: -999, dark: -999 };
+  list.forEach(function (m) {
+    const x = lay.xOf(m.y);
+    const bright = m.kind === "bright";
+    ctx.strokeStyle = bright ? "rgba(255,213,106,.9)" : "rgba(142,183,255,.9)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, lay.plotY);
+    ctx.lineTo(x, lay.plotY + 12);
+    ctx.stroke();
+    if (x - last[m.kind] < 22) return;
+    last[m.kind] = x;
+    setFont(ctx, 11, "700");
+    ctx.textAlign = "center";
+    ctx.lineWidth = 3;
+    if (bright) {
+      ctx.strokeStyle = "rgba(7,11,20,.8)";
+      ctx.strokeText(m.text, x, lay.plotY - 6);
+      ctx.fillStyle = "#ffd56a";
+      ctx.fillText(m.text, x, lay.plotY - 6);
+    } else {
+      ctx.strokeStyle = "rgba(7,11,20,.85)";
+      ctx.strokeText(m.text, x, lay.plotY + 18);
+      ctx.fillStyle = "#b9d2ff";
+      ctx.fillText(m.text, x, lay.plotY + 18);
+    }
+  });
+}
+
+function drawAxis(ctx, lay, h) {
+  const info = axisInfo(lay.half);
+  ctx.strokeStyle = "#93a4c4";
+  ctx.fillStyle = "#c5d4ee";
+  ctx.lineWidth = 1;
+  const y = lay.plotY + lay.plotH + 6;
+  ctx.beginPath(); ctx.moveTo(lay.plotX, y); ctx.lineTo(lay.plotX + lay.plotW, y); ctx.stroke();
+  setFont(ctx, 11);
+  ctx.textAlign = "center";
+  info.ticks.forEach(function (t) {
+    if (Math.abs(t) > lay.half * 1.001) return;
+    const x = lay.xOf(t);
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + (Math.abs(t) < 1e-12 ? 8 : 5)); ctx.stroke();
+    ctx.fillText(fmtTick(t, info), x, y + 18);
+  });
+  ctx.textAlign = "right";
+  ctx.fillText("y (" + info.name + ")", lay.plotX + lay.plotW, h - 4);
+}
+
+function drawRuler(ctx, lay) {
+  const x1 = clamp(lay.xOf(state.rulerA), lay.plotX, lay.plotX + lay.plotW);
+  const x2 = clamp(lay.xOf(state.rulerB), lay.plotX, lay.plotX + lay.plotW);
+  const y1 = lay.plotY, y2 = lay.plotY + lay.plotH;
+  ctx.fillStyle = "rgba(255, 196, 70, .13)";
+  ctx.fillRect(Math.min(x1, x2), y1, Math.abs(x2 - x1), y2 - y1);
+  [["A", state.rulerA, x1], ["B", state.rulerB, x2]].forEach(function (item) {
+    ctx.strokeStyle = "#ffd56a";
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(item[2], y1); ctx.lineTo(item[2], y2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(item[2], (y1 + y2) / 2, 11, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffd56a"; ctx.fill();
+    setFont(ctx, 12, "700"); ctx.fillStyle = "#1a1404"; ctx.textAlign = "center";
+    ctx.fillText(item[0], item[2], (y1 + y2) / 2 + 4);
+  });
+}
+
+function drawGraph() {
+  const canvas = document.getElementById("graph");
+  const box = prep(canvas);
+  const ctx = box.ctx, w = box.w, h = box.h;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "#070b14";
+  ctx.fillRect(0, 0, w, h);
+  if (state.mode === "polar") { drawMalusGraph(ctx, w, h); return; }
+  const left = 46, right = 12, top = 16, bottom = 36;
+  const plotW = w - left - right, plotH = h - top - bottom;
+  const half = viewHalf();
+  const info = axisInfo(half);
+  ctx.strokeStyle = "rgba(147,164,196,.25)";
+  ctx.lineWidth = 1;
+  for (let g = 0; g <= 4; g++) {
+    const yy = top + plotH * (1 - g / 4);
+    ctx.beginPath(); ctx.moveTo(left, yy); ctx.lineTo(left + plotW, yy); ctx.stroke();
+    setFont(ctx, 11); ctx.fillStyle = "#93a4c4"; ctx.textAlign = "right";
+    ctx.fillText((g / 4).toFixed(2), left - 6, yy + 4);
+  }
+  info.ticks.forEach(function (t) {
+    if (Math.abs(t) > half) return;
+    const x = left + ((t / half) * 0.5 + 0.5) * plotW;
+    ctx.beginPath(); ctx.moveTo(x, top + plotH); ctx.lineTo(x, top + plotH + 5); ctx.stroke();
+    ctx.textAlign = "center"; ctx.fillText(fmtTick(t, info), x, top + plotH + 18);
+  });
+  setFont(ctx, 12); ctx.textAlign = "center"; ctx.fillStyle = "#c5d4ee";
+  ctx.fillText("ระยะบนฉาก y (" + info.name + ")", left + plotW / 2, h - 4);
+  ctx.save(); ctx.translate(14, top + plotH / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText("I/I₀", 0, 0); ctx.restore();
+
+  const series = state.white
+    ? [{ nm: 460, color: "#4aa3ff" }, { nm: 530, color: "#3dde7a" }, { nm: 650, color: "#ff5a4a" }]
+    : [{ nm: state.lambdaNm, color: beamColor() }];
+  series.forEach(function (s, idx) {
+    const lam = s.nm * 1e-9;
+    const peaks = state.mode === "grating" ? computePeaks(lam, half, half * 1e-6) : null;
+    const pts = [];
+    for (let x = 0; x <= plotW; x++) {
+      const y = ((x / plotW) * 2 - 1) * half;
+      const I = peaks ? gratingI(y, peaks) : intensityAt(y, lam);
+      pts.push({ x: x, I: I });
+    }
+    if (peaks) {
+      peaks.forEach(function (p) {
+        const x = ((p.y0 / half) * 0.5 + 0.5) * plotW;
+        if (x >= 0 && x <= plotW) pts.push({ x: x, I: 1 });
+      });
+      pts.sort(function (a, b) { return a.x - b.x; });
+    }
+    ctx.beginPath();
+    pts.forEach(function (p, i) {
+      const px = left + p.x;
+      const py = top + plotH * (1 - clamp(p.I, 0, 1));
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    });
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = state.white ? 1.6 : 2;
+    ctx.stroke();
+    if (!state.white) {
+      ctx.lineTo(left + plotW, top + plotH);
+      ctx.lineTo(left, top + plotH);
+      ctx.closePath();
+      ctx.globalAlpha = 0.16; ctx.fillStyle = s.color; ctx.fill(); ctx.globalAlpha = 1;
+    }
+    if (state.white) {
+      setFont(ctx, 11); ctx.fillStyle = s.color; ctx.textAlign = "left";
+      ctx.fillText(s.nm + " nm", left + 8, top + 14 + idx * 14);
+    }
+  });
+  if (state.hoverY != null && Math.abs(state.hoverY) <= half) {
+    const x = left + ((state.hoverY / half) * 0.5 + 0.5) * plotW;
+    ctx.strokeStyle = "rgba(255,255,255,.75)";
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, top + plotH); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+function drawMalusGraph(ctx, w, h) {
+  const left = 46, right = 12, top = 16, bottom = 36;
+  const plotW = w - left - right, plotH = h - top - bottom;
+  const yMax = 0.55;
+  ctx.strokeStyle = "rgba(147,164,196,.25)";
+  for (let g = 0; g <= 4; g++) {
+    const val = (yMax * g) / 4;
+    const yy = top + plotH * (1 - val / yMax);
+    ctx.beginPath(); ctx.moveTo(left, yy); ctx.lineTo(left + plotW, yy); ctx.stroke();
+    setFont(ctx, 11); ctx.fillStyle = "#93a4c4"; ctx.textAlign = "right";
+    ctx.fillText(val.toFixed(2), left - 6, yy + 4);
+  }
+  function xOf(deg) { return left + (deg / 90) * plotW; }
+  function yOf(I) { return top + plotH * (1 - I / yMax); }
+  ctx.beginPath();
+  for (let d = 0; d <= 90; d++) {
+    const I = 0.5 * (1 - d / 90);
+    if (d === 0) ctx.moveTo(xOf(d), yOf(I)); else ctx.lineTo(xOf(d), yOf(I));
+  }
+  ctx.strokeStyle = "#ff9a4a"; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.beginPath();
+  for (let d = 0; d <= 90; d++) {
+    const I = 0.5 * Math.abs(Math.cos(d * Math.PI / 180));
+    if (d === 0) ctx.moveTo(xOf(d), yOf(I)); else ctx.lineTo(xOf(d), yOf(I));
+  }
+  ctx.strokeStyle = "#c58bff"; ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath();
+  for (let d = 0; d <= 90; d++) {
+    const I = 0.5 * Math.cos(d * Math.PI / 180) ** 2;
+    if (d === 0) ctx.moveTo(xOf(d), yOf(I)); else ctx.lineTo(xOf(d), yOf(I));
+  }
+  ctx.strokeStyle = "#2fe0c0"; ctx.lineWidth = 2.4; ctx.stroke();
+  const I = malus().I2;
+  ctx.beginPath(); ctx.arc(xOf(state.thetaDeg), yOf(I), 5, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffd56a"; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(xOf(state.thetaDeg), top); ctx.lineTo(xOf(state.thetaDeg), top + plotH);
+  ctx.strokeStyle = "rgba(255,213,106,.7)"; ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.stroke(); ctx.setLineDash([]);
+  setFont(ctx, 11); ctx.textAlign = "center"; ctx.fillStyle = "#c5d4ee";
+  for (let d = 0; d <= 90; d += 15) ctx.fillText(d + "°", xOf(d), top + plotH + 16);
+  ctx.fillText("มุม θ ของแผ่นที่สอง", left + plotW / 2, h - 4);
+  ctx.save(); ctx.translate(14, top + plotH / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText("I/I₀", 0, 0); ctx.restore();
+  setFont(ctx, 11); ctx.textAlign = "left";
+  ctx.fillStyle = "#2fe0c0"; ctx.fillText("ถูกต้อง: ½ cos²θ", left + 8, top + 12);
+  ctx.fillStyle = "#ff9a4a"; ctx.fillText("ลดตรงตามมุม", left + 8, top + 26);
+  ctx.fillStyle = "#c58bff"; ctx.fillText("ลืมยกกำลัง: ½|cosθ|", left + 8, top + 40);
+}
+
+function drawPolar() {
+  const card = document.getElementById("polCard");
+  if (state.mode !== "polar") return;
+  const canvas = document.getElementById("polView");
+  const box = prep(canvas);
+  const ctx = box.ctx, w = box.w, h = box.h;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "#070b14"; ctx.fillRect(0, 0, w, h);
+  const m = malus();
+  const osc = Math.cos(state.time * 5.5);
+  drawDial(ctx, w * 0.2, h * 0.46, Math.min(70, w * 0.12), "ก่อนเข้าแผ่น", "สั่นทุกทิศ", null, 1, osc, false);
+  drawDial(ctx, w * 0.5, h * 0.46, Math.min(70, w * 0.12), "หลังโพลารอยด์", "I₁ = ½ I₀", 0, 1, osc, true);
+  drawDial(ctx, w * 0.8, h * 0.46, Math.min(70, w * 0.12), "หลังแผ่นวิเคราะห์", "I₂/I₁ = " + (m.cos2 * 100).toFixed(1) + "%", state.thetaDeg, Math.abs(Math.cos(state.thetaDeg * Math.PI / 180)), osc, true);
+}
+
+function drawDial(ctx, cx, cy, R, title, sub, axisDeg, amp, osc, single) {
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.strokeStyle = "#314864"; ctx.lineWidth = 1.5; ctx.stroke();
+  if (!single) {
+    for (let i = 0; i < 8; i++) {
+      const ang = i * Math.PI / 8;
+      const o = Math.cos(state.time * 5.5 + i * 0.7);
+      const len = R * 0.72 * o;
+      ctx.strokeStyle = "rgba(180,200,240,.8)";
+      ctx.beginPath();
+      ctx.moveTo(cx - Math.cos(ang) * len, cy - Math.sin(ang) * len);
+      ctx.lineTo(cx + Math.cos(ang) * len, cy + Math.sin(ang) * len);
+      ctx.stroke();
+    }
+  } else {
+    const rad = axisDeg * Math.PI / 180;
+    const ax = Math.sin(rad), ay = -Math.cos(rad);
+    ctx.strokeStyle = "rgba(142,183,255,.45)";
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(cx - ax * R, cy - ay * R); ctx.lineTo(cx + ax * R, cy + ay * R); ctx.stroke();
+    ctx.setLineDash([]);
+    const len = R * 0.82 * amp * osc;
+    ctx.strokeStyle = beamColor(); ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + ax * len, cy + ay * len); ctx.stroke();
+    ctx.lineWidth = 1.5;
+    if (axisDeg) {
+      ctx.beginPath(); ctx.arc(cx, cy, 22, -Math.PI / 2, -Math.PI / 2 + rad, rad < 0);
+      ctx.strokeStyle = "#ffd56a"; ctx.stroke();
+      setFont(ctx, 12, "700"); ctx.fillStyle = "#ffd56a"; ctx.textAlign = "left";
+      ctx.fillText("θ", cx + 26, cy - 8);
+    }
+  }
+  setFont(ctx, 13, "700"); ctx.fillStyle = "#e7eefc"; ctx.textAlign = "center";
+  ctx.fillText(title, cx, cy + R + 18);
+  setFont(ctx, 12); ctx.fillStyle = "#93a4c4";
+  ctx.fillText(sub, cx, cy + R + 34);
+}
+
+function stat(k, v, sub, wide) {
+  return '<div class="stat' + (wide ? " wide" : "") + '"><div class="k">' + k + '</div><div class="v">' + v + '</div>' + (sub ? '<div class="sub">' + sub + "</div>" : "") + "</div>";
+}
+
+function theoryHits(dist) {
+  const lam = (state.white ? 650 : state.lambdaNm) * 1e-9;
+  const hits = [];
+  if (state.mode === "double") {
+    const d = state.dMm * 1e-3;
+    hits.push({ label: "Δy จากสูตร λD/d", value: Math.abs(deltaY(lam)) });
+    const y1 = fringeY(state.phase180 ? 0.5 : 1, d, lam, state.D);
+    if (y1 != null) hits.push({ label: "ระยะถึงแถบสว่างแรกบนฉาก", value: Math.abs(y1) });
+  } else if (state.mode === "single") {
+    const exact = fringeY(1, state.aMm * 1e-3, lam, state.D);
+    if (exact != null) hits.push({ label: "W บนฉาก (2y₁)", value: Math.abs(2 * exact) });
+    hits.push({ label: "W จากสูตร 2λD/a", value: Math.abs(centralW(lam)) });
+  } else if (state.mode === "grating") {
+    const d = 1e-2 / state.N;
+    const m = state.phase180 ? 0.5 : 1;
+    const y1 = fringeY(m, d, lam, state.D);
+    if (y1 != null) hits.push({ label: "ตำแหน่งแถบอันดับ 1 บนฉาก", value: Math.abs(y1) });
+    hits.push({ label: "λD/d (มุมแคบ)", value: Math.abs(lam * state.D / d) });
+  }
+  let best = null;
+  hits.forEach(function (h) { if (near(dist, h.value)) best = h; });
+  return { hits: hits, best: best };
+}
+
+function renderMeasure() {
+  const box = document.getElementById("measureBox");
+  if (state.mode === "polar" || !state.ruler) {
+    box.hidden = true; lastMeasure = ""; return;
+  }
+  box.hidden = false;
+  const dist = Math.abs(state.rulerB - state.rulerA);
+  const info = theoryHits(dist);
+  let extra = "";
+  info.hits.forEach(function (h) { extra += "<br>" + h.label + " = " + fmtLen(h.value); });
+  const match = info.best ? " ใกล้เคียง「" + info.best.label + "」" : "";
+  const html = "จุด A = " + fmtLen(state.rulerA) + " · จุด B = " + fmtLen(state.rulerB) +
+    "<br><b>ระยะที่วัดได้ = " + fmtLen(dist) + "</b>" + match + extra;
+  box.classList.toggle("match", !!info.best);
+  if (html !== lastMeasure) { lastMeasure = html; box.innerHTML = html; }
+}
+
+function renderHover() {
+  const el = document.getElementById("hoverReadout");
+  let html = "เลื่อนตัวชี้บนฉากเพื่ออ่านค่า y และความเข้ม";
+  if (state.mode === "polar") html = "ความสว่างของจุดเทียบกับแสงหลังแผ่นแรก (θ = 0° สว่างสุด)";
+  else if (state.hoverY != null) {
+    const y = state.hoverY;
+    if (state.white) {
+      const bits = [460, 530, 650].map(function (nm) {
+        const peaks = state.mode === "grating" ? computePeaks(nm * 1e-9, viewHalf(), viewHalf() * 1e-6) : null;
+        const I = state.mode === "grating" ? gratingI(y, peaks) : intensityAt(y, nm * 1e-9);
+        return colorName(nm) + " " + I.toFixed(2);
+      });
+      html = "y = " + fmtLen(y) + " · I/I₀ " + bits.join(" · ");
+    } else {
+      const lam = state.lambdaNm * 1e-9;
+      const peaks = state.mode === "grating" ? computePeaks(lam, viewHalf(), viewHalf() * 1e-6) : null;
+      const I = state.mode === "grating" ? gratingI(y, peaks) : intensityAt(y, lam);
+      html = "y = " + fmtLen(y) + " · I/I₀ = " + I.toFixed(3);
+    }
+  }
+  if (html !== lastHover) { lastHover = html; el.textContent = html; }
+}
+
+function renderTexts() {
+  const key = [paramKey(), state.thetaDeg, state.playing ? 1 : 0, state.ruler ? 1 : 0].join("|");
+  if (key === textKey) return;
+  textKey = key;
+  document.querySelectorAll("[data-mode]").forEach(function (btn) {
+    btn.classList.toggle("on", btn.dataset.mode === state.mode);
+  });
+  document.getElementById("lightMono").classList.toggle("on", !state.white);
+  document.getElementById("lightWhite").classList.toggle("on", state.white);
+  document.getElementById("boxGap").hidden = state.mode !== "double";
+  document.getElementById("boxWidth").hidden = state.mode !== "single";
+  document.getElementById("boxN").hidden = state.mode !== "grating";
+  document.getElementById("boxDist").hidden = state.mode === "polar";
+  document.getElementById("boxTheta").hidden = state.mode !== "polar";
+  document.getElementById("polCard").hidden = state.mode !== "polar";
+  document.getElementById("lam").disabled = state.white;
+  document.getElementById("boxLam").classList.toggle("off", state.white);
+  document.getElementById("rulerBtn").disabled = state.mode === "polar";
+  const c = wavelengthToRGB(state.lambdaNm);
+  document.getElementById("swatch").style.background = state.white ? "#fff" : "rgb(" + c.r + "," + c.g + "," + c.b + ")";
+  document.getElementById("lamOut").textContent = state.white ? "แสงขาว" : (state.lambdaNm + " nm · " + colorName(state.lambdaNm));
+  document.getElementById("gapOut").textContent = state.dMm.toFixed(2) + " mm";
+  document.getElementById("widthOut").textContent = state.aMm.toFixed(2) + " mm";
+  document.getElementById("distOut").textContent = state.D.toFixed(1) + " m";
+  document.getElementById("angOut").textContent = state.thetaDeg + "°";
+  document.getElementById("dNote").textContent = "d = 1 cm / N = " + fmtLen(0.01 / state.N);
+  document.getElementById("phaseBtn").classList.toggle("on", state.phase180);
+  document.getElementById("phaseBtn").textContent = state.phase180 ? "เฟสต่างกัน 180°" : "เฟสตรงกัน 0°";
+  document.getElementById("phaseBtn").setAttribute("aria-pressed", state.phase180 ? "true" : "false");
+  document.getElementById("rulerBtn").classList.toggle("on", state.ruler);
+  document.getElementById("rulerBtn").textContent = state.ruler ? "ไม้บรรทัด: เปิด" : "ไม้บรรทัด: ปิด";
+  document.getElementById("playBtn").classList.toggle("on", state.playing);
+  document.getElementById("playBtn").textContent = state.playing ? "หยุดชั่วคราว" : "เริ่ม";
+  const obs = {
+    double: "สังเกตแถบสว่าง Aₙ กับแถบมืด Nₙ ที่ห่างกันเท่า ๆ กัน แล้วลองเพิ่ม λ",
+    single: "สังเกตแถบสว่างกลางที่กว้างเป็นสองเท่า และสูตร a sinθ = nλ คือแถบมืด",
+    grating: "เพิ่ม N แล้วดูจุดสว่างที่คมขึ้นและห่างออก ลองสลับเป็นแสงขาวเพื่อดูสเปกตรัม",
+    polar: "หมุนแผ่นที่สอง แล้วเปรียบเทียบความเข้มกับ cos²θ"
+  };
+  document.getElementById("observe").textContent = obs[state.mode];
+  const deg = state.mode === "double" ? "±2.4°" : state.mode === "single" ? "±6°" : "±28°";
+  document.getElementById("topCaption").textContent = state.mode === "polar"
+    ? "แสงไม่โพลาไรซ์สั่นหลายทิศ ผ่านแผ่นแรกเหลือแนวเดียว และแผ่นที่สองกรองตามมุม θ"
+    : "แผนภาพมุมมองด้านบนใช้หน้าต่างมุม " + deg + " คลื่นถูกขยายให้เห็นชัด ไม่ได้สัดส่วนความยาวคลื่นจริง มุม θ ไม่ขึ้นกับ D";
+  document.getElementById("screenTitle").textContent = state.mode === "polar" ? "แสงที่ผ่านแผ่นวิเคราะห์" : "ภาพบนฉาก";
+  document.getElementById("screenCaption").textContent = state.mode === "polar"
+    ? "เปอร์เซ็นต์บนจุดคือ I₂/I₀ × 100% ของแสงเดิมก่อนเข้าแผ่นแรก"
+    : (state.mode === "grating"
+      ? "ภาพขยายแถบอันดับต่ำเพื่อวัดระยะ สเกลเป็นหน่วยจริง ช่วงที่แสดง ±" + fmtLen(viewHalf())
+      : "ภาพบนฉากใช้หน้าต่างมุมเดียวกับมุมมองด้านบน สเกลเป็นระยะจริง ช่วงที่แสดง ±" + fmtLen(viewHalf()));
+  document.getElementById("graphTitle").textContent = state.mode === "polar" ? "กราฟกฎของมาลุส" : "กราฟความเข้มแสง";
+  document.getElementById("graphCaption").textContent = state.mode === "polar"
+    ? "แกนตั้งคือ I/I₀ ของแสงเดิม เส้นทึบคือค่าที่ถูกต้อง"
+    : (state.mode === "single"
+      ? "กราฟคือ I/I₀ = (sinβ/β)² ตามจริง แถบข้างจึงเตี้ยกว่าแถบกลางมาก"
+      : (state.mode === "grating"
+        ? "ยอดแต่ละเส้นคือจุดสว่าง d sinθ = nλ แสงขาวแสดง λ = 460, 530 และ 650 nm"
+        : "กราฟคือ I/I₀ = cos²(π d sinθ / λ) แถบสว่างห่างกันเท่า ๆ กันเมื่อมุมเล็ก"));
+  document.getElementById("phaseHint").textContent = phaseHint();
+  document.getElementById("nowBar").innerHTML = nowBarHTML();
+  document.getElementById("rulerHint").textContent = state.mode === "polar"
+    ? "ไม้บรรทัดใช้วัดระยะบนฉากในโหมดสลิตและเกรตติ้ง"
+    : "เปิดแล้วลากจุด A กับ B วัดระยะบนฉาก เทียบกับค่าจากสูตร";
+  document.getElementById("formulaCard").innerHTML = formulaHTML();
+  document.getElementById("calcCard").innerHTML = calcHTML();
+  document.getElementById("misCard").innerHTML = misHTML();
+}
+
+function nowBarHTML() {
+  const names = { double: "สลิตคู่", single: "สลิตเดี่ยว", grating: "เกรตติ้ง", polar: "โพลาไรเซชัน" };
+  const bits = [names[state.mode]];
+  bits.push(state.white ? "แสงขาว" : (state.lambdaNm + " nm"));
+  if (state.mode === "double") bits.push("d " + state.dMm.toFixed(2) + " mm");
+  if (state.mode === "single") bits.push("a " + state.aMm.toFixed(2) + " mm");
+  if (state.mode === "grating") bits.push(state.N + " ช่อง/cm");
+  if (state.mode === "polar") bits.push("θ " + state.thetaDeg + "°");
+  else bits.push("D " + state.D.toFixed(1) + " m");
+  if (state.phase180 && state.mode !== "polar" && state.mode !== "single") bits.push("เฟส 180°");
+  return bits.map(function (b) { return "<span>" + b + "</span>"; }).join("");
+}
+
+function setPane(name) {
+  document.body.dataset.pane = name;
+  document.querySelectorAll("[data-dock]").forEach(function (btn) {
+    const on = btn.dataset.dock === name;
+    btn.classList.toggle("on", on);
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  strips.closeKey = "";
+  strips.angleKey = "";
+}
+
+function phaseHint() {
+  if (state.mode === "double") return "เฟส 180° ใช้จำลองแหล่งกำเนิดเฟสตรงกันข้าม แถบสว่างกับแถบมืดจะสลับที่ แต่ Δy ไม่เปลี่ยน";
+  if (state.mode === "grating") return "เฟส 180° ระหว่างช่องที่ติดกันจะเลื่อนจุดสว่างไปที่ตำแหน่งครึ่งอันดับ";
+  if (state.mode === "single") return "เฟสเริ่มต้นทั้งระบบไม่เลื่อนลายเลี้ยวเบน เพราะความเข้มขึ้นกับผลต่างทางเดินภายในช่อง";
+  return "เฟสเริ่มต้นไม่เปลี่ยนความเข้มตามกฎของมาลุส";
+}
+
+function supDigits(n) {
+  const map = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+  const s = String(Math.abs(n));
+  let out = n < 0 ? "⁻" : "";
+  for (let i = 0; i < s.length; i++) out += map[s[i]];
+  return out;
+}
+
+function sci(m) {
+  if (m == null || !isFinite(m)) return "—";
+  if (m === 0) return "0";
+  const sign = m < 0 ? "−" : "";
+  const exp = Math.floor(Math.log10(Math.abs(m)));
+  const man = Math.abs(m) / Math.pow(10, exp);
+  return sign + man.toFixed(2) + "×10" + supDigits(exp);
+}
+
+function eq(label, formula) {
+  return '<div class="eq"><span>' + label + "</span><b>" + formula + "</b></div>";
+}
+
+function bandCell(m, spacing, lambda) {
+  if (m === 0) return { sin: "0", th: "0.00°", y: "0" };
+  const s = Math.abs(m) * lambda / spacing;
+  if (!(s < 1)) return { sin: "> 1", th: "เกิดไม่ได้", y: "—" };
+  const y = fringeY(m, spacing, lambda, state.D);
+  return {
+    sin: s.toFixed(4),
+    th: (Math.asin(s) * 180 / Math.PI).toFixed(2) + "°",
+    y: y == null ? "—" : fmtLen(y)
+  };
+}
+
+function posTable(heads, rows) {
+  let html = '<table class="pos"><thead><tr>';
+  heads.forEach(function (h) { html += "<th>" + h + "</th>"; });
+  html += "</tr></thead><tbody>";
+  rows.forEach(function (r) {
+    html += "<tr" + (r.here ? ' class="here"' : "") + ">";
+    r.cells.forEach(function (c) { html += "<td>" + c + "</td>"; });
+    html += "</tr>";
+  });
+  return '<div class="table-scroll">' + html + "</tbody></table></div>";
+}
+
+function sideOrders(spacing, lambda, start) {
+  const half = viewHalf();
+  let count = 0;
+  for (let i = 0; i < 40; i++) {
+    const y = fringeY(start + i, spacing, lambda, state.D);
+    if (y == null || Math.abs(y) > half) break;
+    count++;
+  }
+  return count;
+}
+
+function formulaHTML() {
+  const nm = state.white ? 650 : state.lambdaNm;
+  const lambda = nm * 1e-9;
+  const D = state.D;
+  if (state.mode === "double") return doubleLesson(nm, lambda, D);
+  if (state.mode === "single") return singleLesson(nm, lambda, D);
+  if (state.mode === "grating") return gratingLesson(nm, lambda, D);
+  return polarLesson();
+}
+
+function doubleLesson(nm, lambda, D) {
+  const d = state.dMm * 1e-3;
+  const dy = deltaY(lambda);
+  const mBright = state.phase180 ? 0.5 : 1;
+  const y1 = fringeY(mBright, d, lambda, D);
+  const y2 = fringeY(state.phase180 ? 1.5 : 2, d, lambda, D);
+  const s1 = mBright * lambda / d;
+  const th1 = s1 < 1 ? Math.asin(s1) * 180 / Math.PI : null;
+  const gap = (y1 != null && y2 != null) ? Math.abs(y2 - y1) : null;
+  const rows = [];
+  if (state.phase180) {
+    rows.push(bandRow("กึ่งกลาง มืด", "δ = 0 แต่เฟสต่าง π", 0, d, lambda));
+    for (let n = 1; n <= 3; n++) {
+      rows.push(bandRow("A" + subNum(n) + " สว่าง", "δ = " + (n - 0.5) + " λ", n - 0.5, d, lambda));
+      rows.push(bandRow("N" + subNum(n) + " มืด", "δ = " + n + " λ", n, d, lambda));
+    }
+  } else {
+    rows.push(bandRow("A₀ สว่าง", "δ = 0", 0, d, lambda));
+    for (let n = 1; n <= 3; n++) {
+      rows.push(bandRow("N" + subNum(n) + " มืด", "δ = (n−½)λ", n - 0.5, d, lambda));
+      rows.push(bandRow("A" + subNum(n) + " สว่าง", "δ = " + n + " λ", n, d, lambda));
+    }
+  }
+  const brightEq = state.phase180 ? "d sinθ = (n − ½)λ" : "d sinθ = nλ";
+  const darkEq = state.phase180 ? "d sinθ = nλ" : "d sinθ = (n − ½)λ";
+  return "<h2>สูตรและเนื้อหา · สลิตคู่</h2>" +
+    "<p class='prose'>แสงจากสองช่องเป็นคลื่นอาพันธ์ ผลต่างทางเดิน δ = d sinθ ถ้า δ เป็นจำนวนเต็มเท่าของ λ คลื่นเสริมกันได้แถบสว่าง Aₙ ถ้าเป็นครึ่งจำนวนคี่ได้แถบมืด Nₙ เมื่อมุมเล็ก sinθ ≈ y/D แถบจึงห่างเท่ากันตลอด</p>" +
+    eq("ผลต่างทางเดิน", "δ = d sinθ") +
+    eq("แถบสว่าง Aₙ , n = 0, 1, 2, …", brightEq) +
+    eq("แถบมืด Nₙ , n = 1, 2, 3, …", darkEq) +
+    eq("มุมแคบ", "y = nλD/d , Δy = λD/d") +
+    eq("มุมทั่วไป θ ≥ 10°", "y = D tanθ , sinθ = nλ/d") +
+    eq("ความเข้ม", "I = I₀ cos²(π d sinθ / λ)") +
+    "<p class='subhead'>แทนค่าจากตัวแปรตอนนี้" + (state.white ? " (ใช้แสงแดง 650 nm)" : "") + "</p>" +
+    "<ol class='steps'>" +
+    "<li>λ = " + nm + " nm = " + sci(lambda) + " m , d = " + state.dMm.toFixed(2) + " mm = " + sci(d) + " m , D = " + D.toFixed(1) + " m</li>" +
+    "<li>Δy = λD/d = (" + sci(lambda) + ")(" + D.toFixed(1) + ") / " + sci(d) + " = " + fmtLen(dy) + "</li>" +
+    "<li>แถบสว่างแรก: sinθ = " + (s1 > 1 ? "มากกว่า 1 เกิดไม่ได้" : s1.toFixed(4)) + (th1 == null ? "" : " → θ = " + th1.toFixed(2) + "°") + "</li>" +
+    "<li>ตำแหน่งบนฉาก y = " + (y1 == null ? "—" : fmtLen(y1)) + (th1 != null && th1 >= 10 ? " ใช้ y = D tanθ เพราะ θ ≥ 10°" : " มุมยังเล็ก จึงใกล้ค่าจาก Δy") + "</li>" +
+    "<li>ระยะ A ถัดไปบนฉาก = " + (gap == null ? "—" : fmtLen(gap)) + (gap != null && differs(gap, dy) ? " ไม่เท่า Δy เพราะมุมไม่เล็ก" : " ใกล้เคียง Δy") + "</li>" +
+    "<li>ในช่วงภาพขยายนี้เห็นแถบสว่างข้างละ " + sideOrders(d, lambda, state.phase180 ? 0.5 : 1) + " แถบ</li>" +
+    "</ol>" +
+    (state.phase180 ? "<p class='prose'>เฟสต่างกัน 180° ทำให้ผลต่างทางเดินเสมือนเพิ่มขึ้นอีก λ/2 แถบสว่างกับแถบมืดจึงสลับที่ แต่ Δy ไม่เปลี่ยน</p>" : "") +
+    "<p class='subhead'>ตารางตำแหน่งด้านบวก</p>" +
+    posTable(["แถบ", "เงื่อนไข", "sinθ", "θ", "y"], rows) +
+    "<p class='hint'>ด้านลบสมมาตรกับด้านบวก λ มากหรือ D มากหรือ d น้อย ทำให้ Δy มากขึ้น</p>";
+}
+
+function bandRow(name, cond, m, spacing, lambda) {
+  const c = bandCell(m, spacing, lambda);
+  return { cells: [name, cond, c.sin, c.th, c.y] };
+}
+
+function singleLesson(nm, lambda, D) {
+  const a = state.aMm * 1e-3;
+  const y1 = fringeY(1, a, lambda, D);
+  const W = centralW(lambda);
+  const Wex = y1 == null ? null : 2 * y1;
+  const next = lambda * D / a;
+  const s1 = lambda / a;
+  const th1 = s1 < 1 ? Math.asin(s1) * 180 / Math.PI : null;
+  const rows = [bandRow("สว่างกลาง", "β = 0 , I = I₀", 0, a, lambda)];
+  for (let n = 1; n <= 4; n++) rows.push(bandRow("N" + subNum(n) + " มืด", "a sinθ = " + n + "λ", n, a, lambda));
+  return "<h2>สูตรและเนื้อหา · สลิตเดี่ยว</h2>" +
+    "<p class='prose'>แสงเลี้ยวเบนที่ช่องแคบ a คลื่นทุติยภูมิจากคนละจุดในช่องหักล้างกันเป็นแถบมืด สูตร a sinθ = nλ ใช้หาแถบมืดเท่านั้น และ n เริ่มที่ 1 จึงไม่มีแถบมืดที่ศูนย์กลาง แถบสว่างกลางกว้างจาก N₁ ซ้ายถึง N₁ ขวา จึงเป็น 2 เท่าของแถบสว่างถัดไป</p>" +
+    eq("แถบมืด Nₙ , n = 1, 2, 3, …", "a sinθ = nλ") +
+    eq("ตำแหน่งแถบมืด", "yₙ = D tanθ ≈ nλD/a") +
+    eq("ความกว้างแถบสว่างกลาง", "W = 2y₁ = 2λD/a") +
+    eq("ความกว้างแถบสว่างถัดไป", "≈ λD/a = W/2") +
+    eq("ตัวแปรในสูตรความเข้ม", "β = π a sinθ / λ") +
+    eq("ความเข้ม", "I = I₀ (sinβ / β)²") +
+    "<p class='prose'>ที่ศูนย์กลาง β = 0 ได้ I = I₀ แถบสว่างลำดับถัดไปเข้มราว 4.7% และ 1.7% ของแถบกลาง จึงดูจางบนฉาก แต่ยังเห็นตำแหน่งได้จากแถบมืดบนกราฟ</p>" +
+    "<p class='subhead'>แทนค่าจากตัวแปรตอนนี้" + (state.white ? " (ใช้แสงแดง 650 nm)" : "") + "</p>" +
+    "<ol class='steps'>" +
+    "<li>λ = " + nm + " nm = " + sci(lambda) + " m , a = " + state.aMm.toFixed(2) + " mm = " + sci(a) + " m , D = " + D.toFixed(1) + " m</li>" +
+    "<li>แถบมืด N₁: sinθ = λ/a = " + (s1 > 1 ? "มากกว่า 1" : s1.toFixed(4)) + (th1 == null ? "" : " → θ = " + th1.toFixed(2) + "°") + "</li>" +
+    "<li>y₁ = " + (y1 == null ? "—" : fmtLen(y1)) + " ดังนั้น W = 2y₁ = " + fmtLen(Wex == null ? W : Wex) + "</li>" +
+    "<li>สูตรมุมแคบ W = 2λD/a = " + fmtLen(W) + (differs(W, Wex) ? " ต่างจากค่าบนฉากเพราะ θ ≥ 10°" : " ตรงกับค่าบนฉาก") + "</li>" +
+    "<li>แถบสว่างถัดไปกว้างประมาณ λD/a = " + fmtLen(next) + " ซึ่งเป็นครึ่งหนึ่งของแถบกลาง</li>" +
+    "</ol>" +
+    "<p class='subhead'>ตารางแถบมืดด้านบวก</p>" +
+    posTable(["แถบ", "เงื่อนไข", "sinθ", "θ", "y"], rows) +
+    "<p class='hint'>a แคบหรือ λ มาก ทำให้ลายเลี้ยวเบนกว้างขึ้น ไม่ใช่ชิดกัน</p>";
+}
+
+function gratingLesson(nm, lambda, D) {
+  const d = 1e-2 / state.N;
+  const nmax = Math.floor(d / lambda);
+  const m1 = state.phase180 ? 0.5 : 1;
+  const y1 = fringeY(m1, d, lambda, D);
+  const approx = Math.abs(smallAngleY(m1, d, lambda, D));
+  const s1 = m1 * lambda / d;
+  const th1 = s1 < 1 ? Math.asin(s1) * 180 / Math.PI : null;
+  const rows = [];
+  const limit = state.phase180 ? 3 : 4;
+  for (let n = 0; n < limit; n++) {
+    const m = state.phase180 ? n + 0.5 : n;
+    const label = state.phase180 ? "อันดับ " + (n + 1) : "n = " + n;
+    const cond = state.phase180 ? "d sinθ = " + m + "λ" : "d sinθ = " + n + "λ";
+    if (!state.white) rows.push(bandRow(label, cond, m, d, lambda));
+    else {
+      const yB = fringeY(m === 0 ? 0 : m, d, 460e-9, D);
+      const yR = fringeY(m === 0 ? 0 : m, d, 650e-9, D);
+      rows.push({ cells: [label, cond, yB == null ? "—" : fmtLen(Math.abs(yB)), yR == null ? "—" : fmtLen(Math.abs(yR))] });
+    }
+  }
+  const heads = state.white ? ["แถบ", "เงื่อนไข", "y น้ำเงิน 460 nm", "y แดง 650 nm"] : ["แถบ", "เงื่อนไข", "sinθ", "θ", "y"];
+  return "<h2>สูตรและเนื้อหา · เกรตติ้ง</h2>" +
+    "<p class='prose'>เกรตติ้งมีช่องจำนวนมาก ระยะห่างช่อง d = 1/N จุดสว่างหลักเกิดเมื่อผลต่างทางเดินระหว่างช่องที่ติดกันเป็นจำนวนเต็มเท่าของ λ จำนวนช่องต่อเซนติเมตรสูงทำให้ d ลดลง จุดสว่างจึงห่างและคม ใช้แยกสเปกตรัมแสงขาวได้</p>" +
+    eq("ระยะห่างช่อง", "d = 1 cm / N = " + sci(d) + " m") +
+    eq("จุดสว่างอันดับ n", state.phase180 ? "d sinθ = (n − ½)λ" : "d sinθ = nλ") +
+    eq("อันดับสูงสุด", "n ≤ d/λ เมื่อ sinθ = 1") +
+    eq("มุมแคบ", "y ≈ nλD/d") +
+    eq("มุมทั่วไป", "y = D tan(arcsin(nλ/d))") +
+    "<p class='prose'>อันดับ n = 0 ของแสงขาวเป็นแถบขาวเพราะทุกสีซ้อนที่ศูนย์กลาง ในอันดับอื่น แสงน้ำเงิน (λ น้อย) อยู่ใกล้ศูนย์กว่าแสงแดง</p>" +
+    "<p class='subhead'>แทนค่าจากตัวแปรตอนนี้" + (state.white ? " (มุมของแสงแดง 650 nm)" : "") + "</p>" +
+    "<ol class='steps'>" +
+    "<li>N = " + state.N + " ช่อง/cm → d = 0.01 / " + state.N + " = " + sci(d) + " m = " + fmtLen(d) + "</li>" +
+    "<li>λ = " + nm + " nm , d/λ = " + (d / lambda).toFixed(2) + " จึงเกิดได้อันดับสูงสุด n = " + nmax + "</li>" +
+    "<li>อันดับ 1: sinθ = " + (s1 > 1 ? "มากกว่า 1 เกิดไม่ได้" : s1.toFixed(4)) + (th1 == null ? "" : " → θ = " + th1.toFixed(2) + "°") + "</li>" +
+    "<li>y บนฉาก = " + (y1 == null ? "เกิดไม่ได้" : fmtLen(Math.abs(y1))) + " ส่วนมุมแคบให้ " + fmtLen(approx) + (th1 != null && th1 >= 10 ? " ใช้ค่า y = D tanθ เพราะ θ ≥ 10°" : "") + "</li>" +
+    "</ol>" +
+    (state.phase180 ? "<p class='prose'>เฟสต่าง 180° ระหว่างช่องที่ติดกันเลื่อนจุดสว่างไปเงื่อนไขครึ่งอันดับ จุดกลางจึงมืด</p>" : "") +
+    "<p class='subhead'>ตารางอันดับต่ำ</p>" +
+    posTable(heads, rows) +
+    "<p class='hint'>เพิ่ม N แล้วดูทั้งมุมที่กว้างขึ้นและเส้นบนกราฟที่คมขึ้น</p>";
+}
+
+function polarLesson() {
+  const deg = state.thetaDeg;
+  const rad = deg * Math.PI / 180;
+  const c = Math.cos(rad);
+  const c2 = c * c;
+  const angles = [0, 30, 45, 60, 90];
+  if (angles.indexOf(deg) < 0) angles.push(deg);
+  angles.sort(function (a, b) { return a - b; });
+  const rows = angles.map(function (d) {
+    const cs = Math.cos(d * Math.PI / 180);
+    const cs2 = cs * cs;
+    return { here: d === deg, cells: [d + "°", cs.toFixed(3), cs2.toFixed(3), (cs2 * 100).toFixed(1) + "%", (50 * cs2).toFixed(1) + "%"] };
+  });
+  return "<h2>สูตรและเนื้อหา · โพลาไรเซชัน</h2>" +
+    "<p class='prose'>แสงธรรมดาไม่โพลาไรซ์ สนามไฟฟ้าสั่นได้ทุกทิศที่ตั้งฉากกับทิศการเคลื่อนที่ แผ่นโพลารอยด์แผ่นแรกคัดให้เหลือสั่นแนวเดียว และความเข้มเฉลี่ยเหลือครึ่งหนึ่ง แผ่นที่สอง (แผ่นวิเคราะห์) ทำมุม θ กับแผ่นแรก จะให้ผ่านเฉพาะองค์ประกอบตามแกนของมัน</p>" +
+    eq("หลังแผ่นโพลารอยด์", "I₁ = ½ I₀") +
+    eq("กฎของมาลุส", "I₂ = I₁ cos²θ") +
+    eq("เทียบกับแสงเดิม", "I₂ = ½ I₀ cos²θ") +
+    eq("θ = 0° แกนขนาน", "I₂ = I₁") +
+    eq("θ = 90° แกนตั้งฉาก", "I₂ = 0") +
+    eq("θ = 60°", "cos60° = ½ , cos²θ = ¼") +
+    "<p class='prose'>บางแบบเรียนเขียน I = I₀ cos²θ โดยให้ I₀ หมายถึงความเข้มหลังแผ่นแรกแล้ว ซึ่งคือ I₁ ในสัญลักษณ์ชุดนี้ ไม่ใช่ความเข้มของแสงไม่โพลาไรซ์เดิม</p>" +
+    "<p class='subhead'>แทนค่าที่มุมตอนนี้</p>" +
+    "<ol class='steps'>" +
+    "<li>θ = " + deg + "° , cosθ = " + c.toFixed(3) + " , cos²θ = " + c2.toFixed(3) + "</li>" +
+    "<li>I₂ / I₁ = cos²θ = " + (c2 * 100).toFixed(1) + "% ของแสงหลังแผ่นแรก</li>" +
+    "<li>I₂ / I₀ = ½ × " + c2.toFixed(3) + " = " + (0.5 * c2).toFixed(3) + " = " + (50 * c2).toFixed(1) + "% ของแสงเดิม</li>" +
+    "<li>ถ้าเข้าใจว่าลดตรงตามมุม จะได้เหลือ " + ((1 - deg / 90) * 100).toFixed(1) + "% ของแสงหลังแผ่นแรก ซึ่งไม่ใช่กฎของมาลุส</li>" +
+    "</ol>" +
+    "<p class='subhead'>เทียบหลายมุม</p>" +
+    posTable(["θ", "cosθ", "cos²θ", "I₂/I₁", "I₂/I₀"], rows) +
+    "<p class='hint'>แถวสีเขียวคือมุมที่ตั้งอยู่ตอนนี้ ลองเลื่อนไป 45° และ 60° แล้วเทียบกับตาราง</p>";
+}
+
+function calcHTML() {
+  const lam = (state.white ? 650 : state.lambdaNm) * 1e-9;
+  const D = state.D;
+  let html = "<h2>ผลการคำนวณ</h2><div class='stats'>";
+  if (state.mode === "double") {
+    const d = state.dMm * 1e-3;
+    const m1 = state.phase180 ? 0.5 : 1;
+    const m2 = state.phase180 ? 1.5 : 2;
+    const y1 = fringeY(m1, d, lam, D);
+    const approx = smallAngleY(1, d, lam, D);
+    const th1 = fringeAngle(m1, d, lam);
+    html += stat("ระยะห่างแถบสว่าง Δy", fmtLen(deltaY(lam)), "Δy = λD/d" + (state.white ? " ที่ λ = 650 nm" : ""));
+    html += stat("ตำแหน่งแถบสว่างแรก", y1 == null ? "—" : fmtLen(y1), "y บนฉาก");
+    html += stat("θ ของแถบสว่าง n = 1", fmtDegFromSin(m1, d, lam), th1 != null && th1 >= 10 * Math.PI / 180 ? "ใช้ y = D tanθ" : "มุมแคบ");
+    html += stat("θ ของแถบสว่าง n = 2", fmtDegFromSin(m2, d, lam), "");
+    html += stat("sinθ แถบสว่างแรก", (m1 * lam / d) > 1 ? "เกิดไม่ได้" : (m1 * lam / d).toFixed(4), state.phase180 ? "d sinθ = ½λ" : "d sinθ = λ");
+    html += stat("แถบสว่างในภาพขยาย", "ข้างละ " + sideOrders(d, lam, state.phase180 ? 0.5 : 1), "นับเฉพาะด้านบวก ไม่รวมแถบกลาง");
+    if (differs(y1, approx) && y1 != null) {
+      html += stat("เปรียบเทียบมุมแคบ", fmtLen(approx), "y ≈ nλD/d ต่างจากตำแหน่งบนฉาก " + fmtLen(y1), true);
+    }
+    html += stat("แทนค่า", "Δy = (" + (state.white ? 650 : state.lambdaNm) + "×10⁻⁹)(" + D.toFixed(1) + ") / (" + state.dMm.toFixed(2) + "×10⁻³)", fmtLen(deltaY(lam)), true);
+  } else if (state.mode === "single") {
+    const a = state.aMm * 1e-3;
+    const y1 = fringeY(1, a, lam, D);
+    const Wex = y1 == null ? null : 2 * y1;
+    const W = centralW(lam);
+    html += stat("ความกว้างแถบสว่างกลาง", fmtLen(Wex == null ? W : Wex), "W = 2y₁ ระหว่างแถบมืด N₁ ทั้งสองข้าง");
+    html += stat("สูตรมุมแคบ 2λD/a", fmtLen(W), differs(W, Wex) ? "ต่างจากค่าบนฉากเพราะ θ ไม่เล็ก" : "สอดคล้องกับค่าบนฉาก");
+    html += stat("θ ของแถบมืด N₁", fmtDegFromSin(1, a, lam), "a sinθ = 1·λ");
+    html += stat("θ ของแถบมืด N₂", fmtDegFromSin(2, a, lam), "a sinθ = 2λ");
+    html += stat("y ของ N₁", y1 == null ? "—" : fmtLen(y1), "แถบมืดแรกจากศูนย์กลาง");
+    html += stat("แถบสว่างถัดไป", fmtLen(lam * D / a), "กว้างประมาณ λD/a ซึ่งเท่ากับ W/2", true);
+  } else if (state.mode === "grating") {
+    const d = 1e-2 / state.N;
+    const m1 = state.phase180 ? 0.5 : 1;
+    const m2 = state.phase180 ? 1.5 : 2;
+    const y1 = fringeY(m1, d, lam, D);
+    const approx = Math.abs(smallAngleY(m1, d, lam, D));
+    const th1 = fringeAngle(m1, d, lam);
+    const nmax = Math.floor(d / lam);
+    html += stat("ระยะห่างช่อง d", fmtLen(d), "d = 1 cm / " + state.N);
+    html += stat("อันดับสูงสุด", "n = " + nmax, "จาก d sin90° = nλ");
+    html += stat("θ อันดับ 1", fmtDegFromSin(m1, d, lam), th1 != null && th1 >= 10 * Math.PI / 180 ? "θ ≥ 10° ใช้ y = D tanθ" : "");
+    html += stat("θ อันดับ 2", fmtDegFromSin(m2, d, lam), "");
+    html += stat("sinθ อันดับ 1", (m1 * lam / d) > 1 ? "เกิดไม่ได้" : (m1 * lam / d).toFixed(4), "จาก d sinθ = nλ");
+    html += stat("y อันดับ 1 บนฉาก", y1 == null ? "เกิดไม่ได้" : fmtLen(Math.abs(y1)), differs(y1, approx) ? "มุมแคบให้ " + fmtLen(approx) : "ใกล้ค่า λD/d = " + fmtLen(approx), true);
+    if (state.white) {
+      const yB = fringeY(1, d, 460e-9, D);
+      const yR = fringeY(1, d, 650e-9, D);
+      html += stat("สเปกตรัมอันดับ 1", (yB && yR) ? (fmtLen(Math.abs(yB)) + " → " + fmtLen(Math.abs(yR))) : "—", "จากแสงน้ำเงิน 460 nm ถึงแสงแดง 650 nm", true);
+    }
+  } else {
+    const m = malus();
+    html += stat("I₁/I₀", "50%", "แสงไม่โพลาไรซ์ผ่านแผ่นแรก");
+    html += stat("cos²θ", m.cos2.toFixed(3), "θ = " + state.thetaDeg + "°");
+    html += stat("I₂/I₁", (m.cos2 * 100).toFixed(1) + "%", "กฎของมาลุสเทียบกับแสงหลังแผ่นแรก");
+    html += stat("I₂/I₀", (m.I2 * 100).toFixed(1) + "%", "ร้อยละของแสงเดิมที่ทะลุผ่านทั้งสองแผ่น");
+  }
+  html += "</div>" + meterHTML();
+  return html;
+}
+
+function meterHTML() {
+  if (state.mode === "polar") {
+    const m = malus();
+    const pct = m.cos2 * 100;
+    return "<div class='meter'><div class='field-head'><span>แสงที่ผ่านแผ่นที่สอง เทียบกับแผ่นแรก</span><b>" + pct.toFixed(1) + "%</b></div><div class='track'><div class='fill' style='width:" + pct + "%'></div></div></div>";
+  }
+  const nm = state.white ? 650 : state.lambdaNm;
+  const cur = spreadNow(nm);
+  const ref = REF[state.mode];
+  const ratio = ref ? cur / ref : 1;
+  const width = clamp(ratio, 0, 3) / 3 * 100;
+  const label = state.mode === "single" ? "ความกว้างแถบกลาง" : "ระยะแถบ";
+  return "<div class='meter'><div class='field-head'><span>" + label + " เทียบค่าเริ่มต้น" + (state.white ? " (แสงแดง 650 nm)" : "") + "</span><b>× " + ratio.toFixed(2) + "</b></div><div class='track'><div class='fill' style='width:" + width + "%'></div></div></div>";
+}
+
+function spreadNow(nm) {
+  const lambda = nm * 1e-9;
+  if (state.mode === "double") return deltaY(lambda);
+  if (state.mode === "single") return centralW(lambda);
+  const y = fringeY(1, 1e-2 / state.N, lambda, state.D);
+  return y == null ? 0 : Math.abs(y);
+}
+
+function misHTML() {
+  const head = "<h2>จุดที่มักเข้าใจคลาดเคลื่อน</h2>";
+  if (state.mode === "double") {
+    const dy = deltaY((state.white ? 650 : state.lambdaNm) * 1e-9);
+    const dyB = deltaY(460e-9);
+    return head + "<ul><li>อย่าสลับกับสลิตเดี่ยว: d sinθ = nλ ของสลิตคู่ใช้หาแถบสว่าง Aₙ แต่ a sinθ = nλ ของสลิตเดี่ยวใช้หาแถบมืด</li><li>แสงแดง (λ มาก) ทำให้แถบห่างกันมากกว่าแสงน้ำเงิน ไม่ใช่ชิดกันกว่า เพราะ Δy แปรผันตรงกับ λ</li><li>Δy แปรผันตรงกับ D และแปรผกผันกับ d เพิ่ม D หรือลด d แล้วแถบจะบานออก</li><li>เฟสต่างกัน 180° หรือการสะท้อนที่เปลี่ยนเฟส π จะสลับที่แถบสว่างกับแถบมืด แต่ Δy ยังเท่าเดิม</li></ul><div class='live'>ตอนนี้ Δy = " + fmtLen(dy) + (state.white ? " สำหรับแสงแดง 650 nm" : (" ที่ λ = " + state.lambdaNm + " nm")) + " ถ้าเป็นแสงน้ำเงิน 460 nm จะได้ Δy = " + fmtLen(dyB) + " ซึ่งน้อยกว่า" + (state.phase180 ? " ขณะนี้เปิดเฟส 180° กึ่งกลางฉากจึงมืด" : "") + "</div>";
+  }
+  if (state.mode === "single") {
+    const W = centralW((state.white ? 650 : state.lambdaNm) * 1e-9);
+    const Wb = centralW(460e-9);
+    return head + "<ul><li>สูตร a sinθ = nλ ใช้หาแถบมืด Nₙ ไม่ใช่แถบสว่าง และ n เริ่มที่ 1</li><li>แถบสว่างกลางกว้างเป็น 2 เท่าของแถบสว่างอื่น และเข้มที่สุด W = 2λD/a</li><li>แถบสว่างถัดไปกว้างประมาณ λD/a ซึ่งเป็นครึ่งหนึ่งของแถบกลาง</li><li>ยิ่ง λ มากหรือช่อง a แคบ ลายเลี้ยวเบนยิ่งกว้าง แสงแดงบานมากกว่าแสงน้ำเงิน</li></ul><div class='live'>ตอนนี้ W = " + fmtLen(W) + " ถ้าเป็นแสงน้ำเงิน 460 nm จะได้ W = " + fmtLen(Wb) + " ซึ่งแคบกว่า</div>";
+  }
+  if (state.mode === "grating") {
+    const d = 1e-2 / state.N;
+    const yB = fringeY(1, d, 460e-9, state.D);
+    const yR = fringeY(1, d, 650e-9, state.D);
+    return head + "<ul><li>N สูงทำให้ d = 1/N ลดลง จุดสว่างจึงห่างกันและคมขึ้น ใช้แยกสเปกตรัมแสงขาวได้</li><li>ในอันดับเดียวกัน แสงน้ำเงินอยู่ใกล้ศูนย์กลางกว่าแสงแดง เพราะ λ น้อยกว่า</li><li>อันดับ n = 0 ของแสงขาวยังเป็นแถบขาว ไม่แยกสี</li><li>อันดับสูงสุดหาจาก n ≤ d/λ ถ้า sinθ เกิน 1 อันดับนั้นเกิดไม่ได้</li></ul><div class='live'>อันดับ 1: แสงน้ำเงิน 460 nm อยู่ที่ " + (yB == null ? "เกิดไม่ได้" : fmtLen(Math.abs(yB))) + " ส่วนแสงแดง 650 nm อยู่ที่ " + (yR == null ? "เกิดไม่ได้" : fmtLen(Math.abs(yR))) + "</div>";
+  }
+  const m = malus();
+  const linear = 1 - state.thetaDeg / 90;
+  return head + "<ul><li>แสงธรรมดาไม่โพลาไรซ์ สั่นทุกทิศทาง ผ่านแผ่นแรกแล้วเหลือครึ่งหนึ่งและสั่นแนวเดียว</li><li>ความเข้มหลังแผ่นที่สองเป็นสัดส่วนกับ cos²θ ไม่ได้ลดลงตรง ๆ ตามมุม และไม่ใช่แค่ cosθ</li><li>ที่ 60° ได้ cos²θ = 1/4 จึงเหลือ 25% ของแสงหลังแผ่นแรก ไม่ใช่เหลือสองในสาม</li><li>เมื่อ θ = 90° แนววิเคราะห์ตั้งฉากกับแผ่นแรก แสงไม่ผ่าน</li></ul><div class='live'>θ = " + state.thetaDeg + "° ได้ cos²θ = " + m.cos2.toFixed(3) + " จึงเหลือ " + (m.cos2 * 100).toFixed(1) + "% ของแสงหลังแผ่นแรก หรือ " + (m.I2 * 100).toFixed(1) + "% ของแสงเดิม ถ้าเข้าใจว่าลดตรงตามมุมจะได้ " + (linear * 100).toFixed(1) + "% ซึ่งไม่ใช่กฎของมาลุส</div>";
+}
+
+function $(id) { return document.getElementById(id); }
+
+function boot() {
+  applyDefaults();
+  const params = new URLSearchParams(location.search);
+  const preset = params.get("mode");
+  if (preset === "single" || preset === "grating" || preset === "polar" || preset === "double") state.mode = preset;
+  if (params.get("white") === "1") state.white = true;
+  if (params.get("phase") === "180") state.phase180 = true;
+  const pane = params.get("pane");
+  if (pane === "controls" || pane === "learn" || pane === "stage") setPane(pane);
+  document.querySelectorAll("[data-dock]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      setPane(btn.dataset.dock);
+      window.scrollTo(0, 0);
+    });
+  });
+  $("lam").value = state.lambdaNm;
+  $("gap").value = state.dMm.toFixed(2);
+  $("width").value = state.aMm.toFixed(2);
+  $("lines").value = String(state.N);
+  $("dist").value = String(state.D);
+  $("ang").value = String(state.thetaDeg);
+  document.querySelectorAll("[data-mode]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      state.mode = btn.dataset.mode;
+      if (state.mode === "polar") state.ruler = false;
+      else if (state.ruler) placeRulerDefault();
+      textKey = "";
+    });
+  });
+  $("lightMono").addEventListener("click", function () { state.white = false; if (state.ruler && !state.rulerCustom) placeRulerDefault(); textKey = ""; });
+  $("lightWhite").addEventListener("click", function () { state.white = true; if (state.ruler && !state.rulerCustom) placeRulerDefault(); textKey = ""; });
+  $("lam").addEventListener("input", function () {
+    state.lambdaNm = parseInt(this.value, 10);
+    if (state.ruler && !state.rulerCustom) placeRulerDefault();
+  });
+  $("gap").addEventListener("input", function () {
+    state.dMm = Math.round(parseFloat(this.value) * 100) / 100;
+    if (state.ruler && !state.rulerCustom) placeRulerDefault();
+  });
+  $("width").addEventListener("input", function () {
+    state.aMm = Math.round(parseFloat(this.value) * 100) / 100;
+    if (state.ruler && !state.rulerCustom) placeRulerDefault();
+  });
+  $("lines").addEventListener("change", function () {
+    state.N = parseInt(this.value, 10);
+    if (state.ruler && !state.rulerCustom) placeRulerDefault();
+  });
+  $("dist").addEventListener("input", function () {
+    state.D = Math.round(parseFloat(this.value) * 10) / 10;
+    if (state.ruler && !state.rulerCustom) placeRulerDefault();
+  });
+  $("ang").addEventListener("input", function () { state.thetaDeg = parseInt(this.value, 10); });
+  $("phaseBtn").addEventListener("click", function () {
+    state.phase180 = !state.phase180;
+    if (state.ruler && !state.rulerCustom) placeRulerDefault();
+    textKey = "";
+  });
+  $("rulerBtn").addEventListener("click", function () {
+    if (state.mode === "polar") return;
+    state.ruler = !state.ruler;
+    if (state.ruler) { state.rulerCustom = false; placeRulerDefault(); }
+    textKey = "";
+  });
+  $("playBtn").addEventListener("click", function () { state.playing = !state.playing; textKey = ""; });
+  $("resetBtn").addEventListener("click", function () {
+    applyDefaults();
+    $("lam").value = 650; $("gap").value = "0.10"; $("width").value = "0.05";
+    $("lines").value = "300"; $("dist").value = "1"; $("ang").value = "0";
+    textKey = ""; strips.closeKey = ""; strips.angleKey = "";
+  });
+  const screen = $("screenView");
+  screen.addEventListener("pointerdown", onPointerDown);
+  screen.addEventListener("pointermove", onPointerMove);
+  window.addEventListener("pointerup", onPointerUp);
+  screen.addEventListener("pointerleave", function () { if (!state.drag) state.hoverY = null; });
+  window.addEventListener("resize", function () { strips.closeKey = ""; strips.angleKey = ""; });
+  requestAnimationFrame(loop);
+}
+
+function eventY(e, clampToPlot) {
+  if (!screenMetrics) return null;
+  const rect = $("screenView").getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const inside = x >= screenMetrics.plotX && x <= screenMetrics.plotX + screenMetrics.plotW;
+  if (!inside && !clampToPlot) return null;
+  const xx = clamp(x, screenMetrics.plotX, screenMetrics.plotX + screenMetrics.plotW);
+  return screenMetrics.yOfX(xx);
+}
+
+function onPointerDown(e) {
+  if (state.mode === "polar" || !state.ruler || !screenMetrics) return;
+  const y = eventY(e, false);
+  if (y == null) return;
+  const x = e.clientX - $("screenView").getBoundingClientRect().left;
+  const xa = screenMetrics.xOf(state.rulerA);
+  const xb = screenMetrics.xOf(state.rulerB);
+  const da = Math.abs(x - xa), db = Math.abs(x - xb);
+  if (da > 18 && db > 18) return;
+  state.drag = da <= db ? "A" : "B";
+  state.rulerCustom = true;
+  if (e.target.setPointerCapture) e.target.setPointerCapture(e.pointerId);
+  e.preventDefault();
+}
+
+function onPointerMove(e) {
+  if (state.mode === "polar") return;
+  const hover = eventY(e, false);
+  if (hover != null) state.hoverY = hover;
+  else if (!state.drag) state.hoverY = null;
+  if (!state.drag) return;
+  const y = eventY(e, true);
+  if (y == null) return;
+  if (state.drag === "A") state.rulerA = y; else state.rulerB = y;
+}
+
+function onPointerUp() { state.drag = null; }
+
+let lastT = 0;
+function loop(t) {
+  if (!lastT) lastT = t;
+  const dt = Math.min(0.05, (t - lastT) / 1000);
+  lastT = t;
+  if (state.playing) state.time += dt;
+  renderTexts();
+  drawScreen();
+  drawTop();
+  drawGraph();
+  drawPolar();
+  renderMeasure();
+  renderHover();
+  requestAnimationFrame(loop);
+}
+
+try {
+  runTests();
+  if (typeof document !== "undefined") boot();
+} catch (err) {
+  if (typeof document !== "undefined") {
+    document.body.insertAdjacentHTML("afterbegin", "<pre style='color:#fff;padding:16px;white-space:pre-wrap'>" + err.message + "</pre>");
+  } else {
+    throw err;
+  }
+}
+</script>
+</body>
+</html>
